@@ -11,14 +11,20 @@ import { flattenDeep } from "lodash";
 import NodeID3 from "node-id3";
 import path from "path";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
-import { AlbumBuilder, ArtistBuilder, FolderBuilder, RecentlyAddedBuilder, ShadowBuilder } from "./database";
+import {
+  AlbumBuilder,
+  ArtistBuilder,
+  FolderBuilder,
+  RecentlyAddedBuilder,
+  ShadowBuilder
+} from "./database";
 import { areDiffrent } from "./helpers";
 import { UNKNOWN_ALBUM, UNKNOWN_ARTIST } from "./providers/constants";
-import { route } from "./providers/router";
+import { route } from "./providers/routerWrapper";
 import { MainQueue, Task } from "./providers/utilities";
+import { seekMusic } from "./providers/MusicScanner";
+import { initRoutes } from "./endpoints";
 const isDevelopment = process.env.NODE_ENV !== "production";
-
-
 
 // main queue
 
@@ -35,7 +41,7 @@ async function createWindow() {
     width: 1020,
     height: 600,
     show: false,
-    // frame: false,
+    frame: false,
     // transparent:true,
     webPreferences: {
       // Use pluginOptions.nodeIntegration, leave this alone
@@ -133,48 +139,19 @@ ipcMain.on("add-new-lib", event => {
 
 global.questUserData = app.getPath("userData");
 
-namespace Scanner {
-  export function seekMusic(libs: Array<string> | string) {
-    if (typeof libs === "string") libs = [libs];
-
-    let res = libs.map(lib_path => {
-      // if (lib_path[lib_path.length - 1] === path.sep) {
-      //   lib_path = lib_path.slice(0, lib_path.length - 1);
-      // }
-      const library = lib_path;
-      lib_path = path.normalize(lib_path + "/**/*.mp3");
-
-      const musicList = glob.sync(lib_path, { nodir: true });
-
-      return musicList.map(fullpath => {
-        const id = Buffer.from(fullpath, "ascii").toString("base64");
-        //OLD
-        // const name = fullpath.split('/')[fullpath.split('/').length - 1]
-        //NEW
-        const name = path.basename(fullpath);
-        // const res = await NodeID3.Promise.read(fullpath);
-
-        const song: Shadow = {
-          id,
-          modified: fs.statSync(fullpath).mtimeMs,
-          name,
-          library,
-          fullpath
-          // album: res.album || UNKNOWN_ALBUM,
-          // artist: res.album || UNKNOWN_ARTIST,
-          // title: res.title || name.replace(".mp3", "")
-        };
-        return song;
-      });
-
-      // return await Promise.all(musicShadows);
-    });
-
-    return flattenDeep(res);
-  }
+if (!fs.existsSync(path.join(app.getPath("userData"), "database"))) {
+  fs.mkdirSync(path.join(app.getPath("userData"), "database"));
+  fs.mkdirSync(path.join(app.getPath("userData"), "database/indexes"));
 }
-
 const watcherInstance: chokidar.FSWatcher[] = [];
+
+ipcMain.on("close-appication", () => {
+  app.quit();
+});
+
+ipcMain.on("minimize-appication", () => {
+  BrowserWindow.getAllWindows()[0].minimize();
+});
 
 // let timeoutHandler: NodeJS.Timeout
 function startBuildingDatabase(absPath: string[]) {
@@ -185,7 +162,6 @@ function startBuildingDatabase(absPath: string[]) {
   const shadow = new ShadowBuilder();
   const recentlyAdded = new RecentlyAddedBuilder(20);
   const buildFolders = new FolderBuilder();
-
   albums.dump();
   artist.dump();
   shadow.dump();
@@ -198,7 +174,7 @@ function startBuildingDatabase(absPath: string[]) {
   recentlyAdded.createDirectory();
   buildFolders.createDirectory();
 
-  const musicObjects = Scanner.seekMusic(absPath);
+  const musicObjects = seekMusic(absPath);
 
   musicObjects.forEach((shade, inx: number) => {
     new Task(questQueue, async task => {
@@ -305,13 +281,12 @@ function watchAndIndex(libraries: string[]) {
   BrowserWindow.getAllWindows()[0].webContents.send("DB-Changed");
   console.log("EVENT FIREDDDDDD");
 
-  // VVV
-  // libraries.forEach(lib => {
-  //   const w = watchForChange(lib, () => {
-  //     watchAndIndex(libraries);
-  //   });
-  //   watcherInstance.push(w);
-  // });
+  libraries.forEach(lib => {
+    const w = watchForChange(lib, () => {
+      watchAndIndex(libraries);
+    });
+    watcherInstance.push(w);
+  });
 }
 
 // entry point
@@ -325,44 +300,46 @@ async function start(libraries: string[]) {
     const hasChanged = await compair(libraries);
 
     if (hasChanged) {
-      console.log("librareis has changed");
+      console.log("=====>librareis has changed");
       startBuildingDatabase(libraries);
       task.done();
     } else {
       task.done();
     }
-// VVV
-    // libraries.forEach(lib => {
-    //   watcherInstance.push(
-    //     watchForChange(lib, () => {
-    //       watchAndIndex(libraries);
-    //     })
-    //   );
-    // });
+
+    libraries.forEach(lib => {
+      watcherInstance.push(
+        watchForChange(lib, () => {
+          watchAndIndex(libraries);
+        })
+      );
+    });
   });
 
   startJob.ready();
 }
 
 ipcMain.on("quest-start", (_, args: string[]) => {
+  args = ["C:\\Users\\User\\Music"];
   start(args); // ["/home/mahdiyar/Music"];
 });
 
-// test
-// setTimeout(() => {
-//   startBuildingDatabase(["/home/mahdiyar/Music"])
-// }, 1500);
-
-route("home", questQueue, async () => {
-  const a = new AlbumBuilder();
-  // const b = new ArtistBuilder();
-  const c = new RecentlyAddedBuilder();
-
-  // let artist = await Promise.all(b.get());
-  let album = await Promise.all(a.ls());
-  let recentlyAdded = await Promise.all(c.get());
-
-  return { album, /*, artist, */ recentlyAdded };
+ipcMain.on("sleep-sync", (event, params) => {
+  console.log(params);
+  setTimeout(() => {
+    event.reply("sleep-sync");
+  }, Number(params));
 });
 
+route("home", questQueue, async () => {
+  // const a = new AlbumBuilder()
+  // const b = new ArtistBuilder();
+  const c = new RecentlyAddedBuilder();
+  // let artist = await Promise.all(b.get());
+  // let album = await Promise.all(a.ls())
+  let recentlyAdded = await Promise.all(c.get());
+
+  return recentlyAdded;
+});
+initRoutes(questQueue);
 questQueue.start();

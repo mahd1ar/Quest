@@ -57,8 +57,12 @@
         >
           <svg class="p-2 w-full fill-current" viewBox="0 0 32 32">
             <g>
-              <rect height="320" width="79" x="128" y="96" />
-              <rect height="320" width="79" x="305" y="96" />
+              <path
+                d="M7.6,1a1,1,0,0,0-1,1V30a1,1,0,0,0,2,0V2A1,1,0,0,0,7.6,1Z"
+              />
+              <path
+                d="M24.4,1a1,1,0,0,0-1,1V30a1,1,0,0,0,2,0V2A1,1,0,0,0,24.4,1Z"
+              />
             </g>
           </svg>
         </div>
@@ -79,18 +83,18 @@
         </div>
       </div>
       <div class="h-2/5 w-full flex justify-between items-center">
-        <span class="text-sm text-gray-200 w-12 text-left">{{
-          currentTime
-        }}</span>
+        <span class="text-sm text-gray-200 w-12 text-left">
+          {{ currentTime }}
+        </span>
         <input
           :value="progress"
           @change="seek"
           type="range"
           class="w-full h-1 mx-2"
         />
-        <span class="text-sm text-gray-200 w-12 text-right">{{
-          duration
-        }}</span>
+        <span class="text-sm text-gray-200 w-12 text-right">
+          {{ duration }}
+        </span>
       </div>
     </div>
     <div

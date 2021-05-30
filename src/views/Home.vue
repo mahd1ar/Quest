@@ -7,12 +7,12 @@
       }"
     >
       <!-- bg-gradient-to-b from-green-500  -->
-
+      <button @click="sim++">SOMOM {{ sim }}</button>
       <!-- card -->
       <h2 class="text-3xl capitalize">good evening</h2>
       <div class="my-6 flex flex-wrap">
         <div
-          v-for="(music, index) in data.recentlyAdded"
+          v-for="(music, index) in recentlyAdded"
           :key="music.id"
           @click="playMusic(music)"
           class="sm:w-6/12 lg:w-1/3 xl:w-1/4"
@@ -48,17 +48,26 @@
       <h2 class="text-3xl capitalize my-6">Albums</h2>
       <div class="flex overflow-x-hidden">
         <div
-          v-for="(album, index) in data.album"
+          v-for="(album, index) in album"
           :key="index"
           class="2xl:w-1/6 xl:w-1/5 lg:w-1/4 sm:w-1/3 px-3"
         >
           <span
             class="bg-white bg-opacity-5 hover:bg-opacity-10 cursor-pointer flex flex-col rounded-sm"
+            @click="lsCategory"
           >
-            <img
-              class="rounded-md sm:m-2 lg:m-4 h-32 object-cover"
-              :src="album.image"
-            />
+            <!-- <img class="rounded-md sm:m-2 lg:m-4 h-32 object-cover" :src="album.image" /> -->
+            <div class="rounded-md sm:m-2 lg:m-4 h-32 overflow-hidden relative">
+              <img
+                class="hi w-full h-full object-cover relative top-full"
+                :src="album.image"
+                :ref="
+                  el => {
+                    if (el) albumsCovers[index] = el;
+                  }
+                "
+              />
+            </div>
             <span class="capitalize px-2 font-bold text-blue-100">
               <h3
                 class="text-lg text-blue-50 whitespace-nowrap overflow-ellipsis w-full overflow-x-hidden"
@@ -84,38 +93,42 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, ref, computed, reactive } from "vue";
+import {
+  defineComponent,
+  onMounted,
+  ref,
+  computed,
+  reactive,
+  watch
+} from "vue";
 import { ipcRenderer } from "electron";
 import Player from "../components/PlayerBox.vue";
 import { Message, Music, Notification } from "@/schema";
 import { cloneDeep } from "lodash";
 import { useStore } from "vuex";
-import { getAverageRGB } from "@/components/frontEndUtils.ts";
+import { getAverageRGB, fullRoute } from "@/components/frontEndUtils.ts";
 import { emptyAndFillArray } from "../helpers";
-import { fill } from "lodash";
-// const anime = require("animejs");
 
-interface HomeData {
-  album: Music[];
-  artist: Music[];
-  recentlyAdded: Music[];
-}
+// @ts-ignore
+import anime from "animejs/lib/anime.es.js";
+import { useRouter } from "vue-router";
+
+type RGB = [number, number, number];
 
 export default defineComponent({
   name: "Home",
   components: { Player },
   setup() {
-    // const refreshIndex = ref(0);
-    const data: HomeData = reactive({
-      recentlyAdded: [],
-      album: [],
-      artist: []
-    }); //as HomeData;
+    const recentlyAdded: Music[] = reactive([]),
+      album = reactive([]);
+    const router = useRouter();
     const store = useStore();
     const questAlert = (params: Notification) => {
       store.dispatch("alert", params);
     };
     const imgElements = ref([]);
+    const albumsCovers = ref([]);
+
     const bgColors: number[] = reactive([34, 197, 94]);
     let hover = false;
     let back2default: number;
@@ -126,14 +139,11 @@ export default defineComponent({
       hover = true;
 
       const { r, g, b } = getAverageRGB(imgElements.value[index]);
-      bgColors[0] = r;
-      bgColors[1] = g;
-      bgColors[2] = b;
+      chnageBackgound([r, g, b]);
 
       clearTimeout(back2default);
-
       back2default = window.setTimeout(() => {
-        fill(bgColors, 0);
+        chnageBackgound([0, 0, 0]);
       }, 5000);
     };
 
@@ -141,42 +151,83 @@ export default defineComponent({
       hover = false;
     };
 
-    onMounted(() => {
-      ipcRenderer.send("route.home.req");
+    const chnageBackgound = (to: RGB) => {
+      const rgb: { r: number; g: number; b: number } = {
+        r: bgColors[0],
+        g: bgColors[1],
+        b: bgColors[2]
+      };
 
-      ipcRenderer.on("route.home.res", (_, params: HomeData) => {
+      anime({
+        targets: rgb,
+        r: to[0],
+        g: to[1],
+        b: to[2],
+        round: 1,
+        easing: "linear",
+        update: function() {
+          bgColors[0] = rgb.r;
+          bgColors[1] = rgb.g;
+          bgColors[2] = rgb.b;
+        }
+      });
+    };
+
+    onMounted(() => {
+      ipcRenderer.send(fullRoute.req("home"));
+      ipcRenderer.send(fullRoute.req("recently_played.get"));
+      ipcRenderer.send(fullRoute.req("albums"));
+
+      ipcRenderer.on(fullRoute.res("home"), (_, params: Array<Music>) => {
         console.log(cloneDeep(params));
-        emptyAndFillArray(
-          data.recentlyAdded,
-          params.recentlyAdded.splice(0, 4)
-        );
-        // data.recentlyAdded = params.recentlyAdded;
-        emptyAndFillArray(data.album, params.album.splice(0, 6));
-        // refreshIndex.value++;
+        emptyAndFillArray(recentlyAdded, params.splice(0, 4));
       });
 
-      ipcRenderer.on("DB-Changed", (_, params: Message) => {
-        // refreshIndex.value++;
+      ipcRenderer.on(
+        fullRoute.res("recently_played.get"),
+        (_, params: Music[]) => {
+          console.log("heeey", params);
+        }
+      );
 
-        questAlert({ title: "something is changed" });
+      ipcRenderer.on(
+        fullRoute.res("albums"),
+        (_, payload: { image: string; name: string }[]) => {
+          emptyAndFillArray(album, payload);
+        }
+      );
 
+      ipcRenderer.on("DB-Changed", () => {
+        questAlert({ title: "re scanning library", type: "refresh" });
+
+        ipcRenderer.send(fullRoute.req("albums"));
         ipcRenderer.send("route.home.req");
       });
-
-      // setTimeout(() => {
-      // anime({
-      //   targets: imgElements,
-      //   translateX: 250,
-      //   rotate: "1turn",
-      //   backgroundColor: "#FFF",
-      //   duration: 800
-      // });
-      // }, 2000);
     });
 
+    watch(album, () => {
+      setTimeout(() => {
+        anime({
+          targets: albumsCovers.value,
+          translateY: "-100%",
+          duration: 900,
+          opacity: [0, 1],
+          easing: "easeOutQuint",
+          delay: function(el: any, i: number) {
+            return i * 120;
+          }
+        });
+      }, 1200);
+    });
     return {
       // refreshIndex,
-      data,
+      sim: ref(0),
+      lsCategory: () => {
+        router.push("/category/album/Randomac cessMemory");
+      },
+      albumsCovers,
+      album,
+      recentlyAdded,
       mouseOver,
       mouseLeave,
       imgElements,

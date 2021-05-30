@@ -45,4 +45,15 @@ function getAverageRGB(imgEl: HTMLImageElement) {
   return rgb;
 }
 
-export { getAverageRGB };
+const fullRoute = {
+  req: (str: string): string => {
+    // route.${routeValue}.req
+    return `route.${str}.req`;
+  },
+
+  res: (str: string): string => {
+    return `route.${str}.res`;
+  }
+};
+
+export { getAverageRGB, fullRoute };

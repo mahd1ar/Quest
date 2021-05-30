@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen overflow-hidden relative">
+  <div class="flex h-full overflow-hidden relative" id="default-layout">
     <div class="w-full xl:w-3/12 sm:w-4/12 bg-black text-white flex flex-col">
       <div class="w-52 py-5 px-8">
         <img

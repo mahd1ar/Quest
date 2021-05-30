@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed top-2 right-7 z-10">
+  <div class="fixed top-10 right-7 z-10">
     <transition-group name="list-complete" tag="p">
       <div
         v-for="(item, index) in notifications"
@@ -7,19 +7,24 @@
         class="list-complete-item w-72 flex justify-center items-center m-1 font-medium py-1 px-2 bg-white rounded-sm border"
         :class="colors[index]"
       >
-        <div class="pr-4" slot="avatar">
+        <div class="pr-4">
           <svg
             width="100%"
             height="100%"
             fill="#fff"
             viewBox="0 0 24 24"
-            stroke=""
+            stroke
             class="feather feather-check-circle w-5 h-5 mx-2"
           >
             <path v-if="item.type == 'warn'" :d="icons.warn" />
             <path v-if="item.type == 'log'" :d="icons.log" />
             <path v-if="item.type == 'success'" :d="icons.success" />
             <path v-if="item.type == 'error'" :d="icons.error" />
+            <path
+              v-if="item.type == 'refresh'"
+              :d="icons.refresh"
+              class="animate-spin origin-center"
+            />
           </svg>
         </div>
         <div
@@ -65,7 +70,8 @@ import {
   mdiAlert,
   mdiAlertOctagonOutline,
   mdiAlertBoxOutline,
-  mdiCheckboxMarkedOutline
+  mdiCheckboxMarkedOutline,
+  mdiRefresh
 } from "@mdi/js";
 
 export default defineComponent({
@@ -87,6 +93,8 @@ export default defineComponent({
               return "text-green-100 bg-green-700 border-green-700";
             case "warn":
               return "text-yellow-100 bg-yellow-500 border-yellow-700";
+            case "refresh":
+              return "text-gray-100 bg-gray-700 border-gray-700";
             default:
               return "text-gray-100 bg-gray-700 border-gray-700";
           }
@@ -96,6 +104,7 @@ export default defineComponent({
         warn: mdiAlert,
         success: mdiCheckboxMarkedOutline,
         log: mdiAlertBoxOutline,
+        refresh: mdiRefresh,
         error: mdiAlertOctagonOutline
       }
     };

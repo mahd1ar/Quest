@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import Home from "../views/Home.vue";
 import Setting from "../views/Setting.vue";
-import Frontend from "@/views/Frontend.vue";
+import Category from "@/views/Category.vue";
 
 const routes = [
   {
@@ -21,12 +21,12 @@ const routes = [
     component: Setting
   },
   {
-    path: "/",
+    path: "/category/:category/:tag",
     name: "frontend",
     meta: {
       layout: ""
     },
-    component: Frontend
+    component: Category
   }
 ];
 

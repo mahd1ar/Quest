@@ -6,16 +6,15 @@ import { Quest } from "./quest";
 export function route(
   routeValue: string,
   queue: MainQueue,
-  callback: (...args: any[]) => any
+  callback: (params: Message) => any
 ) {
   const routeValueReq = `route.${routeValue}.req`;
   const routeValueRes = `route.${routeValue}.res`;
 
-  ipcMain.on(routeValueReq, event => {
+  ipcMain.on(routeValueReq, (event, params) => {
     new Task(queue, task => {
       try {
-        const responce = callback();
-
+        const responce = callback(params);
         responder(responce, (e: any) => {
           event.reply(routeValueRes, e);
         });

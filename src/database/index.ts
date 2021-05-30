@@ -7,7 +7,7 @@ import {
   UNKNOWN_ARTIST
 } from "@/providers/constants";
 import NodeID3 from "node-id3";
-import { flattenDeep } from "lodash";
+import { flattenDeep, remove } from "lodash";
 import dataurl from "dataurl";
 
 function getImageTag({ image }: NodeID3.Tags): string {
@@ -21,6 +21,10 @@ function getImageTag({ image }: NodeID3.Tags): string {
     img = UNKNOWN_IMG;
   }
   return img;
+}
+
+function calcAbsPath(reletivePath: string) {
+  return path.join(global.questUserData, "/database/" + reletivePath);
 }
 
 abstract class FileBuilder implements IndexBuilder {
@@ -78,10 +82,7 @@ abstract class FileBuilder implements IndexBuilder {
       shadowFile = JSON.parse(
         fs
           .readFileSync(
-            path.join(
-              "/home/mahdiyar/.config/quest/database/shadows",
-              `${param}.json`
-            )
+            path.join(global.questUserData, "database/shadows", param + ".json")
           )
           .toString()
       );
@@ -125,6 +126,7 @@ class AlbumBuilder extends FileBuilder {
       global.questUserData,
       "/database/indexes/albums"
     );
+    console.log(pathname);
     super(pathname);
     this.delimiter = "\n";
   }
@@ -299,10 +301,56 @@ class FolderBuilder extends FileBuilder {
   }
 }
 
+interface expermmentalx extends FileBuilder {
+  somone(x: string): number;
+}
+
+class RecentlyPlayedBuilder extends FileBuilder {
+  private readonly threshold = 30;
+  private buffer: string[] = [];
+
+  constructor() {
+    super(calcAbsPath("/indexes/recently_played.json"), false);
+  }
+
+  process(music: Music, params: any): void {
+    this.buffer = fs
+      .readFileSync(this.correspondingLocation)
+      .toString()
+      .split("\n")
+      .filter(Boolean);
+
+    this.buffer.push(music.id);
+    // if repetetive
+    remove(this.buffer, i => i === music.id);
+
+    // if more than
+    if (this.buffer.length > this.threshold) this.buffer.shift();
+
+    fs.writeFileSync(this.correspondingLocation, this.buffer.join("\n"));
+  }
+
+  get(...args: any[]): Promise<Music>[] {
+    if (!fs.existsSync(this.correspondingLocation)) {
+      return [];
+    }
+
+    return fs
+      .readFileSync(this.correspondingLocation)
+      .toString()
+      .split("\n")
+      .filter(Boolean)
+      .map((i, index, array) =>
+        this.getShadow(array[array.length - 1 - index])
+      );
+  }
+}
+
 export {
   FolderBuilder,
   RecentlyAddedBuilder,
   AlbumBuilder,
   ArtistBuilder,
-  ShadowBuilder
+  ShadowBuilder,
+  RecentlyPlayedBuilder
 };
