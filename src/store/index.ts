@@ -24,7 +24,7 @@ const store = createStore({
         status: "empty",
         duration: 0,
         currentTime: 0,
-        pregressTracker: 0,
+        // pregressTracker: 0,
         currentTimeTracker: 0
       },
       music: {

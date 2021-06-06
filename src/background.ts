@@ -1,7 +1,7 @@
 "use strict";
 
-import { Music, Shadow } from "@/schema";
 import chokidar from "chokidar";
+import { Music, Shadow } from "@/schema";
 import dataurl from "dataurl";
 import { app, BrowserWindow, dialog, ipcMain, protocol } from "electron";
 import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
@@ -11,13 +11,7 @@ import { flattenDeep } from "lodash";
 import NodeID3 from "node-id3";
 import path from "path";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
-import {
-  AlbumBuilder,
-  ArtistBuilder,
-  FolderBuilder,
-  RecentlyAddedBuilder,
-  ShadowBuilder
-} from "./database";
+import { RecentlyAddedBuilder, Shadows, Category } from "./database";
 import { areDiffrent } from "./helpers";
 import { UNKNOWN_ALBUM, UNKNOWN_ARTIST } from "./providers/constants";
 import { route } from "./providers/routerWrapper";
@@ -156,23 +150,22 @@ ipcMain.on("minimize-appication", () => {
 // let timeoutHandler: NodeJS.Timeout
 function startBuildingDatabase(absPath: string[]) {
   // <NEW>
+  console.log("START BUILDING DATABASE");
+  const albums = new Category("album");
+  const artist = new Category("artist");
+  const folder = new Category("library");
 
-  const albums = new AlbumBuilder();
-  const artist = new ArtistBuilder();
-  const shadow = new ShadowBuilder();
-  const recentlyAdded = new RecentlyAddedBuilder(20);
-  const buildFolders = new FolderBuilder();
+  const shadow = new Shadows();
+
+  const recentlyAdded = new RecentlyAddedBuilder();
+
   albums.dump();
   artist.dump();
   shadow.dump();
+  folder.dump();
   recentlyAdded.dump();
-  buildFolders.dump();
 
-  albums.createDirectory();
-  artist.createDirectory();
   shadow.createDirectory();
-  recentlyAdded.createDirectory();
-  buildFolders.createDirectory();
 
   const musicObjects = seekMusic(absPath);
 
@@ -184,73 +177,52 @@ function startBuildingDatabase(absPath: string[]) {
         id: shade.id,
         album: musicTags.album || UNKNOWN_ALBUM,
         artist: musicTags.artist || UNKNOWN_ARTIST,
-        fullpath: shade.fullpath,
+        fullpath: path.join(shade.fullpath),
         library: shade.library,
         modified: shade.modified,
         name: shade.name,
         title: musicTags.title || shade.name.replace(".mp3", "")
       };
 
-      albums.process(music);
-      artist.process(music);
-      buildFolders.process(music);
+      albums.write(music, musicObjects.length === inx + 1);
+      artist.write(music, musicObjects.length === inx + 1);
+      folder.write(music, musicObjects.length === inx + 1);
 
-      recentlyAdded.process(music, musicObjects.length === inx + 1);
+      shadow.write(music);
+      recentlyAdded.write(music, musicObjects.length === inx + 1);
 
-      shadow.process(music);
       task.done();
     }).ready();
   });
 
-  // Debuger
   console.log("end of start building database");
 }
 
-async function compair(entryPints: string[]): Promise<boolean> {
-  return new Promise((resolve, reject) => {
-    const folders = new FolderBuilder();
+function compair(entryPints: string[]): boolean {
+  const folders = new Category("library");
 
-    if (!folders.existsSync()) {
-      resolve(true);
-      return;
-    }
+  if (areDiffrent(folders.ls(), entryPints)) {
+    return true;
+  }
+  const shadow = new Shadows();
+  if (!shadow.existSync()) {
+    return true;
+  }
 
-    if (areDiffrent(folders.getFoldersList(), entryPints)) {
-      resolve(true);
-      return;
-    }
-    const shadow = new ShadowBuilder();
-    if (!fs.existsSync(shadow.correspondingLocation)) {
-      resolve(true);
-      return;
-    }
-    // compaire contents
-    let c = folders.getFoldersList().map(async folderName => {
-      const indexOfMusicInFolder = fs
-        .readdirSync(shadow.correspondingLocation)
-        .map(i =>
-          JSON.parse(
-            fs.readFileSync(shadow.correspondingLocation + "/" + i).toString()
-          )
-        )
-        .filter((i: Music) => i.library === folderName)
-        .map(i => i.fullpath);
+  // compaire contents
+  let c = folders.ls().map(folderName => {
+    const f = new Category("library", folderName);
 
-      return entryPints.map(ep => {
-        const musicList = glob.sync(ep + "/**/*.mp3", { nodir: true });
+    let musicsids = f.get().map(id => f.getShadow(id).fullpath);
 
-        return areDiffrent(musicList, indexOfMusicInFolder);
-      });
+    return entryPints.map(ep => {
+      const musicList = seekMusic(ep).map(i => i.fullpath);
+
+      return areDiffrent(musicList, musicsids);
     });
-
-    Promise.all(c)
-      .then(i => {
-        resolve(flattenDeep(i).some(Boolean));
-      })
-      .catch(err => {
-        reject(err);
-      });
   });
+
+  return flattenDeep(c).some(Boolean);
 }
 
 function watchForChange(path: string, calback: Function): chokidar.FSWatcher {
@@ -290,15 +262,17 @@ function watchAndIndex(libraries: string[]) {
 }
 
 // entry point
-async function start(libraries: string[]) {
+function start(libraries: string[]) {
   const startJob = new Task(questQueue, async task => {
+    console.log("************)))");
+    console.log({ libraries });
     if (libraries.length === 0) {
       task.done();
       return;
     }
 
-    const hasChanged = await compair(libraries);
-
+    const hasChanged = compair(libraries);
+    console.log({ hasChanged });
     if (hasChanged) {
       console.log("=====>librareis has changed");
       startBuildingDatabase(libraries);
@@ -331,15 +305,5 @@ ipcMain.on("sleep-sync", (event, params) => {
   }, Number(params));
 });
 
-route("home", questQueue, async () => {
-  // const a = new AlbumBuilder()
-  // const b = new ArtistBuilder();
-  const c = new RecentlyAddedBuilder();
-  // let artist = await Promise.all(b.get());
-  // let album = await Promise.all(a.ls())
-  let recentlyAdded = await Promise.all(c.get());
-
-  return recentlyAdded;
-});
 initRoutes(questQueue);
 questQueue.start();

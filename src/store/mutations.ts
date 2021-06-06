@@ -2,31 +2,35 @@ import { State, Music, Notification } from "../schema";
 import { ipcRenderer } from "electron";
 import { readFileSync } from "fs";
 import { remove } from "lodash";
+import { Howl, Howler } from "howler";
+
+const howlerInstance: Howl[] = [];
+
 export default {
   seek: (state: State, progressPrecentage: string | number) => {
-    const audioElement = document.querySelector(
-      "#native-player"
-    ) as HTMLAudioElement;
-
+    const audioElement = howlerInstance[0];
     state.player.progress = Number(progressPrecentage);
-    audioElement.currentTime =
-      (Number(progressPrecentage) / 100) * state.player.duration;
+
+    console.log((Number(progressPrecentage) / 100) * state.player.duration);
+    audioElement.seek(
+      (Number(progressPrecentage) / 100) * state.player.duration
+    );
 
     if (state.player.status === "playing")
       state.player.currentTimeTracker = Object.freeze(
         window.setInterval(() => {
-          state.player.currentTime = audioElement.currentTime;
+          state.player.currentTime = <number>audioElement.seek();
+          if (<number>audioElement.seek() === audioElement.duration()) {
+            clearInterval(state.player.currentTimeTracker);
+            state.player.status = "finished";
+          }
         }, 1000)
       );
   },
   pauseMusic: (state: State) => {
     state.player.status = "paused";
-    if (state.player.pregressTracker)
-      clearInterval(state.player.pregressTracker);
-    let audioElement = document.querySelector(
-      "#native-player"
-    ) as HTMLAudioElement;
-    audioElement.pause();
+
+    howlerInstance[0].pause();
 
     clearInterval(state.player.currentTimeTracker);
   },
@@ -34,22 +38,21 @@ export default {
   resumeMusic: (state: State) => {
     state.player.status = "playing";
 
-    const audioElement = document.querySelector(
-      "#native-player"
-    ) as HTMLAudioElement;
+    const audioElement = howlerInstance[0];
+
     audioElement.play();
 
-    const progressTracker = window.setInterval(() => {
-      const t = audioElement!.currentTime / audioElement!.duration;
+    const currentTimeTracker = window.setInterval(() => {
+      state.player.currentTime = <number>audioElement.seek();
+      const t = <number>audioElement.seek() / state.player.duration;
       state.player.progress = t * 100;
-      if (t === 1) clearInterval(progressTracker);
+      if (t === 1) {
+        clearInterval(currentTimeTracker);
+        state.player.status = "finished";
+      }
     }, 1000);
-    state.player.pregressTracker = Object.freeze(progressTracker);
-    state.player.currentTimeTracker = Object.freeze(
-      window.setInterval(() => {
-        state.player.currentTime = audioElement.currentTime;
-      }, 1000)
-    );
+
+    state.player.currentTimeTracker = Object.freeze(currentTimeTracker);
   },
 
   playMusic: (state: State, song: Music) => {
@@ -59,38 +62,49 @@ export default {
     if (state.player.pregressTracker)
       clearInterval(state.player.pregressTracker);
 
-    let audioElement = document.querySelector(
-      "#native-player"
-    ) as HTMLAudioElement;
-
-    audioElement.pause();
-
-    audioElement.src = ipcRenderer.sendSync("convert-to-data-url", {
+    const base64src: string = ipcRenderer.sendSync("convert-to-data-url", {
       data: readFileSync(musicSrc),
       mime: "audio/mp3"
     });
-    audioElement.play();
 
-    audioElement.onloadedmetadata = () => {
-      state.player.duration = audioElement!.duration;
+    const howler = new Howl({
+      src: [base64src],
+      onplayerror: err => {
+        console.log(err);
+      },
+      onload: () => {
+        console.log(0);
+        state.player.progress = 0;
+        state.player.duration = howler.duration();
+      }
+    });
 
-      const progressTracker = window.setInterval(() => {
-        const t = audioElement!.currentTime / audioElement!.duration;
-        state.player.progress = t * 100;
-        if (t === 1) {
-          clearInterval(progressTracker);
-          state.player.status = "finished";
-        }
-      }, 1000);
+    if (howlerInstance[0]) howlerInstance.splice(0, 1)[0].stop();
 
-      state.player.pregressTracker = Object.freeze(progressTracker);
-      state.player.currentTime = 0;
-      state.player.currentTimeTracker = Object.freeze(
-        window.setInterval(() => {
-          state.player.currentTime = audioElement.currentTime;
-        }, 1000)
-      );
-    };
+    howlerInstance.push(howler);
+
+    howler.volume(state.player.volume / 100);
+    howler.play();
+
+    state.player.currentTime = 0;
+    const currentTimeTracker = window.setInterval(() => {
+      state.player.currentTime = <number>howler.seek();
+      const t = <number>howler.seek() / state.player.duration;
+      state.player.progress = t * 100;
+      if (t === 1) {
+        clearInterval(currentTimeTracker);
+        state.player.status = "finished";
+      }
+    }, 1000);
+
+    state.player.currentTimeTracker = Object.freeze(currentTimeTracker);
+  },
+
+  changeVolume(state: State, num: number) {
+    console.log({ num });
+    state.player.volume = num;
+    howlerInstance[0].volume(num / 100);
+    localStorage.setItem("quest.player.volume", String(num));
   },
 
   pushNotification: (state: State, notif: Notification): number => {

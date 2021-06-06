@@ -83,18 +83,13 @@
         </div>
       </div>
       <div class="h-2/5 w-full flex justify-between items-center">
-        <span class="text-sm text-gray-200 w-12 text-left">
-          {{ currentTime }}
-        </span>
-        <input
-          :value="progress"
-          @change="seek"
-          type="range"
-          class="w-full h-1 mx-2"
-        />
-        <span class="text-sm text-gray-200 w-12 text-right">
-          {{ duration }}
-        </span>
+        <span class="text-sm text-gray-200 w-12 text-left">{{
+          currentTime
+        }}</span>
+        <input v-model="seek" type="range" class="w-full h-1 mx-2" />
+        <span class="text-sm text-gray-200 w-12 text-right">{{
+          duration
+        }}</span>
       </div>
     </div>
     <div
@@ -135,9 +130,7 @@
           class="w-full max-h-1 hover:max-h-2"
           max="100"
           min="0"
-          v-model="audioElementVolume"
-          @input="inputVolume"
-          @change="changeVolume"
+          v-model="volume"
           type="range"
         />
       </div>
@@ -154,54 +147,46 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, Ref } from "vue";
+import { defineComponent, computed } from "vue";
 import { useStore, mapActions } from "vuex";
+
+const secToMin = (sec: number): string =>
+  String(Math.floor(sec / 60)) +
+  ":" +
+  String((Math.floor(sec % 60) / 10).toFixed(1)).replace(".", "");
 
 export default defineComponent({
   name: "Player",
   components: {},
   setup() {
     const store = useStore();
-    const secToMin = (sec: number): string =>
-      String(Math.floor(sec / 60)) +
-      ":" +
-      String((Math.floor(sec % 60) / 10).toFixed(1)).replace(".", "");
-
-    let audioElement = document.querySelector(
-      "#native-player"
-    ) as HTMLAudioElement;
-    if (audioElement)
-      audioElement.volume = localStorage.getItem("quest.player.volume")
-        ? Number(localStorage.getItem("quest.player.volume")) / 100
-        : 0.5;
-    const audioElementVolume: Ref<number> = ref(audioElement.volume * 100);
-
-    const inputVolume = () => {
-      audioElement.volume = audioElementVolume.value / 100;
-    };
-    const changeVolume = () => {
-      localStorage.setItem(
-        "quest.player.volume",
-        String(audioElementVolume.value)
-      );
-    };
 
     return {
-      progress: computed(() => store.getters.progress),
       musicStatus: computed(() => store.getters.musicStatus),
       ...mapActions(["resumeMusic", "pauseMusic"]),
-      seek: (event: InputEvent) => {
-        // @ts-ignore
-        store.dispatch("seek", event!.target!.value);
-      },
+
+      seek: computed({
+        get() {
+          return store.getters.progress;
+        },
+        set(v: string) {
+          store.commit("seek", Number(v));
+        }
+      }),
       duration: computed(() => secToMin(store.state.player.duration)),
-      inputVolume,
-      changeVolume,
-      audioElementVolume,
+      volume: computed({
+        get(): string {
+          return store.state.player.volume;
+        },
+        set(v: string) {
+          store.commit("changeVolume", Number(v));
+        }
+      }),
       currentTime: computed(() => secToMin(store.state.player.currentTime)),
       title: computed(() => store.state.music.title),
       album: computed(() => store.state.music.album),
-      albumArt: computed(() => store.state.music.img)
+      albumArt: computed(() => store.state.music.img),
+      progress: computed(() => store.state.player.progress)
     };
   }
 });

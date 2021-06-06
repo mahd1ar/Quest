@@ -1,94 +1,70 @@
-import fs from "fs";
+import fs, { existsSync } from "fs";
 import path from "path";
-import { IndexBuilder, Music, Shadow, Categury } from "@/schema";
+import {
+  IndexBuilder,
+  Music,
+  Shadow,
+  CategoryBuilder,
+  FileBuilder,
+  CategoryTypes
+} from "@/schema";
 import {
   UNKNOWN_IMG,
   UNKNOWN_ALBUM,
   UNKNOWN_ARTIST
 } from "@/providers/constants";
 import NodeID3 from "node-id3";
-import { flattenDeep, remove } from "lodash";
 import dataurl from "dataurl";
 
-function getImageTag({ image }: NodeID3.Tags): string {
-  let img: string;
-  image;
-  if (image) {
-    if (typeof image === "string") img = image;
-    else
-      img = dataurl.convert({ data: image.imageBuffer, mimetype: image.mime });
-  } else {
-    img = UNKNOWN_IMG;
-  }
-  return img;
-}
+// function getImageTag({ image }: NodeID3.Tags): string {
+//   let img: string;
+//   image;
+//   if (image) {
+//     if (typeof image === "string") img = image;
+//     else
+//       img = dataurl.convert({ data: image.imageBuffer, mimetype: image.mime });
+//   } else {
+//     img = UNKNOWN_IMG;
+//   }
+//   return img;
+// }
 
-function calcAbsPath(reletivePath: string) {
-  return path.join(global.questUserData, "/database/" + reletivePath);
-}
-
-abstract class FileBuilder implements IndexBuilder {
+class Index implements IndexBuilder {
+  public basePath: string;
   constructor(
-    protected _correspondingLocation: string,
-    public isDirectory = true
-  ) {}
+    public correspondingName: string,
+    private location?: string | undefined,
+    private fileExt?: "csv" | "json" | undefined
+  ) {
+    this.basePath = path.join(global.questUserData, "/database");
+  }
 
-  abstract process(music: Music, params: any): void;
-  protected database_path: string = path.join(
-    global.questUserData,
-    "/database"
-  );
-  createDirectory(): void {
-    if (this.isDirectory)
-      if (!this.existsSync()) fs.mkdirSync(this.correspondingLocation);
+  existSync(): boolean {
+    return fs.existsSync(this.fullpath);
   }
   dump(): void {
-    if (this.existsSync())
-      fs.rmdirSync(this.correspondingLocation, { recursive: true });
-    // fs.mkdirSync(this.correspondingLocation)
-  }
-
-  existsSync() {
-    return fs.existsSync(this.correspondingLocation);
-  }
-
-  get(...args: any[]): Promise<Music>[] {
-    if (this.isDirectory) {
-      let r = flattenDeep(
-        (fs.readdirSync(this.correspondingLocation) ?? []).map(i =>
-          fs
-            .readFileSync(path.join(this.correspondingLocation, i))
-            .toString()
-            .split("\n")
-            .filter(Boolean)
-        )
-      );
-
-      return r.map(i => this.getShadow(i));
+    console.log("dumping");
+    if (this.existSync()) {
+      fs.unlinkSync(this.fullpath);
     }
-
-    let shadows = JSON.parse(
-      fs.readFileSync(this.correspondingLocation).toString() ?? "[{}]"
-    ).filter(Boolean) as Shadow[];
-
-    return shadows.map(i => this.getShadow(i));
   }
 
-  protected async getShadow(param: string | Shadow): Promise<Music> {
-    let shadowFile: Shadow;
+  createDirectory() {
+    if (this.location)
+      if (!this.existSync())
+        fs.mkdirSync(path.join(this.basePath, this.location));
+  }
 
-    if (typeof param === "string") {
-      param = Buffer.from(param, "ascii").toString("base64");
-      shadowFile = JSON.parse(
-        fs
-          .readFileSync(
-            path.join(global.questUserData, "database/shadows", param + ".json")
-          )
-          .toString()
-      );
-    } else {
-      shadowFile = param;
-    }
+  get fullpath() {
+    const location = this.location || "";
+    return path.join(this.basePath, location, this.correspondingName);
+  }
+  async getMusic(id: string): Promise<Music> {
+    const shadowFile: Shadow = JSON.parse(
+      fs
+        .readFileSync(path.join(this.basePath, "/shadows", id + ".json"))
+        .toString()
+    );
 
     const tags = await NodeID3.Promise.read(shadowFile.fullpath);
 
@@ -105,104 +81,122 @@ abstract class FileBuilder implements IndexBuilder {
       img = UNKNOWN_IMG;
     }
 
-    return Object.assign({}, shadowFile, {
+    return {
+      ...shadowFile,
       album: tags.album || UNKNOWN_ALBUM,
       artist: tags.artist || UNKNOWN_ARTIST,
       img,
       title: tags.title || shadowFile.name.replace(".mp3", "")
-    });
+    };
   }
-
-  public get correspondingLocation() {
-    return this._correspondingLocation;
-  }
-}
-
-class AlbumBuilder extends FileBuilder {
-  readonly delimiter: string;
-
-  constructor() {
-    const pathname = path.join(
-      global.questUserData,
-      "/database/indexes/albums"
-    );
-    console.log(pathname);
-    super(pathname);
-    this.delimiter = "\n";
-  }
-
-  public process(music: Music) {
-    this.add(music.album, music.fullpath);
-  }
-
-  private add(album: string, value: string) {
-    fs.appendFileSync(
-      path.join(this.correspondingLocation, album),
-      `${value}\n`
-    );
-  }
-
-  ls(): Promise<Categury>[] {
-    let res = fs.readdirSync(this.correspondingLocation) ?? [];
-
-    return res.map(async name => {
-      const fullpath = path.normalize(
-        path.join(this.correspondingLocation, name)
-      );
-      const sampleMusic = fs
-        .readFileSync(fullpath)
+  getShadow(id: string): Shadow {
+    return JSON.parse(
+      fs
+        .readFileSync(path.join(this.basePath, "/shadows", id + ".json"))
         .toString()
-        .split("\n")
-        .filter(Boolean)[0];
+    );
+  }
+  readFileSync(): string[] | object {
+    let filecontent = fs.readFileSync(this.fullpath).toString();
+    if (this.fileExt === "json") return JSON.parse(filecontent);
+    else return filecontent.split("\n").filter(Boolean);
+  }
+}
 
-      const tag = await NodeID3.Promise.read(sampleMusic);
+class Category extends Index implements CategoryBuilder {
+  private categoryName?: string;
+  private buffer = {} as { [key: string]: string[] };
+  constructor(correspondingName: CategoryTypes, categoryName?: string) {
+    super(correspondingName, undefined, "json");
+    if (categoryName) this.categoryName = categoryName;
+  }
+  write(music: Music, isLastElement: boolean) {
+    // if (!this.categoryName) //link random access mem
+    //   this.categoryName = music[this.correspondingName];
 
-      let img: string;
+    // @ts-ignore
+    let catname = music[this.correspondingName]; // like random access mem
 
-      if (tag.image) {
-        if (typeof tag.image === "string") img = tag.image;
-        else
-          img = dataurl.convert({
-            data: tag.image.imageBuffer,
-            mimetype: tag.image.mime
-          });
-      } else {
-        img = UNKNOWN_IMG;
-      }
+    if (this.buffer[<string>catname]) {
+      this.buffer[<string>catname].push(music.id);
+    } else {
+      this.buffer[<string>catname] = [music.id];
+    }
+    if (isLastElement) {
+      console.log("VvvvvvvvvvvvvvvvvvvV");
+      console.log(this.buffer);
+      console.log("^^^^^^^^^^^^^^^");
+      fs.writeFileSync(this.fullpath, JSON.stringify(this.buffer, null, 2));
+    }
+  }
 
-      return {
-        image: img,
-        name
-      };
+  ls() {
+    // {[key:string] : string[]}
+    // {
+    //   "random acess mem" : ["123","124","456"]
+    //   "Butifull youn woman" : ["123","124","456"]
+    // }
+    return this.existSync()
+      ? Object.keys(<{ [key: string]: string[] }>this.readFileSync())
+      : [];
+  }
+  read(): Promise<Music>[] {
+    return this.get().map(i => this.getMusic(i));
+  }
+
+  get(catname?: string): string[] {
+    if (catname) this.categoryName = catname;
+
+    if (!this.categoryName) throw new Error("category name are provider");
+
+    if (!this.existSync()) {
+      return [];
+    }
+    const contents = <{ [key: string]: string[] }>this.readFileSync();
+
+    const idString: string[] = Object.keys(contents).includes(this.categoryName)
+      ? contents[this.categoryName]
+      : [];
+    return idString;
+  }
+}
+
+class Shadows {
+  private correspondingLocation: string;
+  constructor() {
+    this.correspondingLocation = path.join(
+      global.questUserData,
+      "/database/shadows"
+    );
+  }
+  read(): Promise<Music>[] {
+    throw new Error("Method not implemented.");
+  }
+
+  createDirectory() {
+    if (!this.existSync()) fs.mkdirSync(this.fullpath);
+  }
+
+  existSync() {
+    return fs.existsSync(this.correspondingLocation);
+  }
+  get fullpath() {
+    return this.correspondingLocation;
+  }
+
+  getAll(): Shadow[] {
+    if (!this.existSync()) {
+      return [];
+    }
+
+    return fs.readdirSync(this.fullpath).map(i => {
+      return JSON.parse(
+        fs.readFileSync(path.join(this.fullpath, i)).toString()
+      );
     });
   }
-}
 
-class ArtistBuilder extends FileBuilder {
-  constructor() {
-    const artistDir = path.join(
-      global.questUserData,
-      "/database/indexes/artists"
-    );
-    super(artistDir);
-  }
-
-  process(music: Music): void {
-    // const res = await NodeID3.Promise.read(fullpath);
-    fs.appendFileSync(
-      path.join(this.correspondingLocation, music.album),
-      `${music.fullpath}\n`
-    );
-  }
-}
-
-class ShadowBuilder extends FileBuilder {
-  constructor() {
-    const shadowsDir = path.join(global.questUserData, "/database/shadows");
-    super(shadowsDir);
-  }
-
-  process({ id, fullpath, name, library, modified }: Music): void {
+  write({ id, fullpath, name, library, modified }: Music): void {
     const x: Shadow = {
       fullpath,
       id,
@@ -212,145 +206,44 @@ class ShadowBuilder extends FileBuilder {
     };
 
     fs.writeFileSync(
-      path.join(this.correspondingLocation, id + ".json"),
+      path.join(this.fullpath, id + ".json"),
       JSON.stringify(x, null, 2)
     );
   }
+
+  dump() {
+    fs.rmdirSync(this.fullpath, { recursive: true });
+  }
 }
 
-class RecentlyAddedBuilder extends FileBuilder {
-  private recentlyAddedList: { id: string; modified: number }[] = [];
-  // private threshold: number | undefined;
-
-  constructor(private threshold: number = 20) {
-    super(
-      path.join(
-        global.questUserData,
-        "/database/indexes/recently_added.ind.json"
-      ),
-      false
-    );
+class RecentlyAddedBuilder extends Index implements FileBuilder {
+  private recentlyAddedList: Music[] = [];
+  private threshold = 20;
+  constructor() {
+    super("RecentlyAddedBuilder");
   }
 
-  process(music: Music, isLastElement: boolean): void {
-    // if (!this.threshold) throw new Error("Threshold is undefied");
+  read(): Promise<Music>[] {
+    return this.get().map(i => this.getMusic(i));
+  }
 
+  get(): string[] {
+    return this.existSync() ? <string[]>this.readFileSync() : [];
+  }
+  write(music: Music, isLastElement: boolean): void {
     if (this.recentlyAddedList.length < this.threshold)
       this.recentlyAddedList.push(music);
     else this.recentlyAddedList[this.threshold] = music;
-
-    // console.log(this.recentlyAddedList.length + "\n")
 
     if (isLastElement) {
       this.recentlyAddedList.sort((a, b) => b.modified - a.modified);
 
       fs.writeFileSync(
-        this.correspondingLocation,
-        JSON.stringify(this.recentlyAddedList, null, 2)
+        this.fullpath,
+        this.recentlyAddedList.map(i => i.id).join("\n")
       );
     }
   }
-  dump() {
-    if (fs.existsSync(this.correspondingLocation))
-      fs.unlinkSync(this.correspondingLocation);
-  }
 }
 
-class FolderBuilder extends FileBuilder {
-  constructor() {
-    const foldersDir = path.join(
-      global.questUserData,
-      "/database/indexes/folders"
-    );
-    super(foldersDir);
-  }
-
-  process(music: Music): void {
-    const folderPath = path.dirname(music.fullpath); // /home/music/an/ -some.pm3 // music.fullpath.split('/').splice(0, music.fullpath.split('/').length - 1).join(path.sep)
-    const foldername64 = Buffer.from(folderPath).toString("base64"); //
-    fs.appendFileSync(
-      path.join(this.correspondingLocation, foldername64 + ".csv"),
-      music.id + "\n"
-    );
-  }
-
-  get(foldername: string) {
-    const filePath = path.join(
-      this.correspondingLocation,
-      Buffer.from(foldername, "ascii").toString("base64") + ".csv"
-    );
-    const data = fs.readFileSync(filePath);
-
-    return data
-      .toString()
-      .split("\n")
-      .filter(Boolean)
-      .map(i => this.getShadow(i));
-  }
-
-  getFoldersList(): string[] {
-    const data = fs.readdirSync(this.correspondingLocation);
-
-    if (data.length === 0) return [];
-
-    const librareis = data
-      .map(d => Buffer.from(d.split(".")[0], "base64").toString("ascii"))
-      .filter((el, _, array) => !array.includes(path.dirname(el)));
-
-    return librareis;
-  }
-}
-
-interface expermmentalx extends FileBuilder {
-  somone(x: string): number;
-}
-
-class RecentlyPlayedBuilder extends FileBuilder {
-  private readonly threshold = 30;
-  private buffer: string[] = [];
-
-  constructor() {
-    super(calcAbsPath("/indexes/recently_played.json"), false);
-  }
-
-  process(music: Music, params: any): void {
-    this.buffer = fs
-      .readFileSync(this.correspondingLocation)
-      .toString()
-      .split("\n")
-      .filter(Boolean);
-
-    this.buffer.push(music.id);
-    // if repetetive
-    remove(this.buffer, i => i === music.id);
-
-    // if more than
-    if (this.buffer.length > this.threshold) this.buffer.shift();
-
-    fs.writeFileSync(this.correspondingLocation, this.buffer.join("\n"));
-  }
-
-  get(...args: any[]): Promise<Music>[] {
-    if (!fs.existsSync(this.correspondingLocation)) {
-      return [];
-    }
-
-    return fs
-      .readFileSync(this.correspondingLocation)
-      .toString()
-      .split("\n")
-      .filter(Boolean)
-      .map((i, index, array) =>
-        this.getShadow(array[array.length - 1 - index])
-      );
-  }
-}
-
-export {
-  FolderBuilder,
-  RecentlyAddedBuilder,
-  AlbumBuilder,
-  ArtistBuilder,
-  ShadowBuilder,
-  RecentlyPlayedBuilder
-};
+export { RecentlyAddedBuilder, Shadows, Category };

@@ -1,8 +1,5 @@
 <template>
-  <div id="app" class="h-screen flex flex-col">
-    <button class="top-10 left-0 fixed bg-red-100 z-10" @click="justDoIt">
-      ADD
-    </button>
+  <div id="app" class="h-screen flex flex-col relative overflow-hidden">
     <notification />
     <transition name="fade">
       <div
@@ -32,12 +29,11 @@
       </div>
     </div>
     <component :is="layout">
-      <!-- <transition name="fade" mode="out-in"> -->
       <router-view />
-      <!-- </transition> -->
     </component>
-
-    <audio ref="nativePlayer" class="hidden" id="native-player"></audio>
+    <transition name="v">
+      <player v-show="showPlayerBox" />
+    </transition>
   </div>
 </template>
 
@@ -49,22 +45,21 @@ import { useRoute } from "vue-router";
 import Notification from "@/components/Notification.vue";
 import { useStore } from "vuex";
 import { mdiWindowMinimize, mdiWindowClose, mdiWindowMaximize } from "@mdi/js";
+import Player from "@/components/PlayerBox.vue";
 
 export default defineComponent({
   name: "App",
-  components: { Notification },
+  components: { Notification, Player },
   setup() {
     const route = useRoute();
-    const documentLoaded = ref(false);
-    const nativePlayer = ref(null);
     const store = useStore();
+    const documentLoaded = ref(false);
 
     const questAlert = (params: Notif) => {
       store.dispatch("alert", params);
     };
 
     window.addEventListener("load", () => {
-      // ipcRenderer.sendSync("sleep-sync", 1000);
       setTimeout(() => {
         documentLoaded.value = true;
       }, 1000);
@@ -84,42 +79,19 @@ export default defineComponent({
           type: params.type
         };
         questAlert(msg);
-        // if (!Array.isArray(params.message))
-        //   questAlert({ title: params.message });
-        // else params.message.forEach(i => questAlert({ title: i }));
       });
     });
 
-    // for test
-    const justDoIt = () => {
-      let letters = "ABCDEFJHIJKMNLPQRSTUVWXYZ";
-      letters += letters.toLowerCase();
-      letters += "\n";
-      letters += " ";
-      letters
-        .split("")
-        .sort(() => {
-          return Math.random();
-        })
-        .join("");
-      questAlert({
-        title: letters,
-        // @ts-ignore
-        type: ["error", "success", "warn", "log", "refresh"][
-          Math.floor(Math.random() * 10) % 5
-        ]
-      });
-    };
     const icons = {
       minimize: mdiWindowMinimize,
       maximize: mdiWindowMaximize,
       close: mdiWindowClose
     };
 
+    const showPlayerBox = computed(() => store.state.player.status !== "empty");
     return {
+      showPlayerBox,
       icons,
-      nativePlayer,
-      justDoIt,
       documentLoaded,
       actionbar: (action: "close" | "minimize" | "maximize") => {
         switch (action) {
@@ -185,6 +157,27 @@ export default defineComponent({
   &-enter-to {
     transition: all 0.8s ease;
     transform: translateY(0);
+  }
+}
+
+.v {
+  &-enter-from,
+  &-leave-to {
+    transition: all 0.8s ease;
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  &-leave-from,
+  &-enter-to {
+    transition: all 0.8s ease;
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  &-enter-active,
+  &-leave-active {
+    position: absolute;
   }
 }
 </style>

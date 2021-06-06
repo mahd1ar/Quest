@@ -7,7 +7,6 @@
       }"
     >
       <!-- bg-gradient-to-b from-green-500  -->
-      <button @click="sim++">SOMOM {{ sim }}</button>
       <!-- card -->
       <h2 class="text-3xl capitalize">good evening</h2>
       <div class="my-6 flex flex-wrap">
@@ -54,7 +53,7 @@
         >
           <span
             class="bg-white bg-opacity-5 hover:bg-opacity-10 cursor-pointer flex flex-col rounded-sm"
-            @click="lsCategory"
+            @click="lsCategory('album', album.name)"
           >
             <!-- <img class="rounded-md sm:m-2 lg:m-4 h-32 object-cover" :src="album.image" /> -->
             <div class="rounded-md sm:m-2 lg:m-4 h-32 overflow-hidden relative">
@@ -87,9 +86,9 @@
     <!-- GAP -->
     <div class="h-24"></div>
   </main>
-  <transition name="v">
+  <!-- <transition name="v">
     <player v-show="showPlayerBox" />
-  </transition>
+  </transition>-->
 </template>
 
 <script lang="ts">
@@ -97,14 +96,12 @@ import {
   defineComponent,
   onMounted,
   ref,
-  computed,
   reactive,
-  watch
+  watch,
+  onUnmounted
 } from "vue";
 import { ipcRenderer } from "electron";
-import Player from "../components/PlayerBox.vue";
 import { Message, Music, Notification } from "@/schema";
-import { cloneDeep } from "lodash";
 import { useStore } from "vuex";
 import { getAverageRGB, fullRoute } from "@/components/frontEndUtils.ts";
 import { emptyAndFillArray } from "../helpers";
@@ -117,13 +114,12 @@ type RGB = [number, number, number];
 
 export default defineComponent({
   name: "Home",
-  components: { Player },
   setup() {
     const recentlyAdded: Music[] = reactive([]),
       album = reactive([]);
     const router = useRouter();
     const store = useStore();
-    const questAlert = (params: Notification) => {
+    const questAlert = (params: Notificationd) => {
       store.dispatch("alert", params);
     };
     const imgElements = ref([]);
@@ -173,26 +169,30 @@ export default defineComponent({
       });
     };
 
+    onUnmounted(() => {
+      ipcRenderer.removeAllListeners(fullRoute.res("recently_played.get"));
+      ipcRenderer.removeAllListeners(fullRoute.res("DB-Changed"));
+      ipcRenderer.removeAllListeners(fullRoute.res("albums"));
+    });
+
     onMounted(() => {
-      ipcRenderer.send(fullRoute.req("home"));
+      console.log("location:", location.href);
+
       ipcRenderer.send(fullRoute.req("recently_played.get"));
       ipcRenderer.send(fullRoute.req("albums"));
 
-      ipcRenderer.on(fullRoute.res("home"), (_, params: Array<Music>) => {
-        console.log(cloneDeep(params));
-        emptyAndFillArray(recentlyAdded, params.splice(0, 4));
-      });
-
       ipcRenderer.on(
         fullRoute.res("recently_played.get"),
-        (_, params: Music[]) => {
-          console.log("heeey", params);
+        (_, payload: Music[]) => {
+          console.log("recently played");
+          emptyAndFillArray(recentlyAdded, payload.splice(0, 4));
         }
       );
 
       ipcRenderer.on(
         fullRoute.res("albums"),
         (_, payload: { image: string; name: string }[]) => {
+          console.log("albumd");
           emptyAndFillArray(album, payload);
         }
       );
@@ -201,7 +201,6 @@ export default defineComponent({
         questAlert({ title: "re scanning library", type: "refresh" });
 
         ipcRenderer.send(fullRoute.req("albums"));
-        ipcRenderer.send("route.home.req");
       });
     });
 
@@ -220,10 +219,8 @@ export default defineComponent({
       }, 1200);
     });
     return {
-      // refreshIndex,
-      sim: ref(0),
-      lsCategory: () => {
-        router.push("/category/album/Randomac cessMemory");
+      lsCategory: (catType: string, catName: string) => {
+        router.push(`/category/${catType}/${catName}`);
       },
       albumsCovers,
       album,
@@ -234,8 +231,7 @@ export default defineComponent({
       bgColors,
       playMusic: (song: Music) => {
         store.dispatch("playMusic", song);
-      },
-      showPlayerBox: computed(() => store.state.player.status !== "empty")
+      }
     };
   }
 });
@@ -257,21 +253,5 @@ input[type="range"]::-webkit-slider-thumb:hover {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.v {
-  &-enter-from,
-  &-leave-to {
-    transition: all 0.8s ease;
-    opacity: 0;
-    transform: translateY(100%);
-  }
-
-  &-leave-from,
-  &-enter-to {
-    transition: all 0.8s ease;
-    transform: translateY(0);
-    opacity: 1;
-  }
 }
 </style>
