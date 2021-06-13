@@ -8,14 +8,15 @@ export function route(
   queue: MainQueue,
   callback: (params: Message) => any
 ) {
-  const routeValueReq = `route.${routeValue}.req`;
-  const routeValueRes = `route.${routeValue}.res`;
+  const routeValueReq = routeValue + `.req`;
+  const routeValueRes = routeValue + `.res`;
 
   ipcMain.on(routeValueReq, (event, params) => {
     new Task(queue, task => {
       try {
         const responce = callback(params);
         responder(responce, (e: any) => {
+          console.log(routeValueRes)
           event.reply(routeValueRes, e);
         });
       } catch (error) {

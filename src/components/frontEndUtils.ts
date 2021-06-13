@@ -1,3 +1,6 @@
+import { ipcRenderer } from 'electron';
+import { findIndex } from 'lodash';
+
 function getAverageRGB(imgEl: HTMLImageElement) {
   const blockSize = 5; // only visit every 5 pixels
   const defaultRGB = { r: 0, g: 0, b: 0 }; // for non-supporting envs
@@ -45,15 +48,50 @@ function getAverageRGB(imgEl: HTMLImageElement) {
   return rgb;
 }
 
-const fullRoute = {
-  req: (str: string): string => {
-    // route.${routeValue}.req
-    return `route.${str}.req`;
-  },
 
-  res: (str: string): string => {
-    return `route.${str}.res`;
+class Listener {
+  private elements: { name: string, action: Function, emitOnLoad: boolean, payload?: object }[] = [];
+
+  constructor() { }
+
+  register(name: string, action: Function, emitOnLoad: boolean = true, payload?: object) {
+    this.elements.push({ name, action, emitOnLoad, payload })
+    return this
   }
-};
 
-export { getAverageRGB, fullRoute };
+
+  emit(payload?: string | number) {
+    if (typeof payload === 'string') {
+      this.sendAsync(findIndex(this.elements, i => i.name === payload))
+
+    } else if (typeof payload === 'number') {
+      this.sendAsync(payload)
+    } else {
+      this.sendAsync(this.elements.length - 1)
+    }
+  }
+
+
+
+  get() {
+    return this.elements;
+  }
+
+  unbindAll() {
+    this.elements.forEach(element => {
+      ipcRenderer.removeAllListeners(element.name + ".res")
+    });
+  }
+
+  private sendAsync(index: number) {
+    if (!this.elements[index].payload)
+      ipcRenderer.send(this.elements[index].name + ".req")
+    else {
+      console.log(this.elements[index].payload)
+      ipcRenderer.send(this.elements[index].name + ".req", this.elements[index].payload)
+    }
+
+  }
+}
+
+export { getAverageRGB, Listener };

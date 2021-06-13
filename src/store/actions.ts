@@ -35,6 +35,11 @@ const alert = (
   c("pushNotification", val);
 };
 
+const toggleHeart = ({ commit: c }: ActionContext<State, State>, val: undefined | boolean) => {
+
+  c("toggleHeart", val);
+};
+
 export default {
   resumeMusic,
   pauseMusic,
@@ -42,5 +47,6 @@ export default {
   addlib,
   playMusic,
   seek,
-  alert
+  alert,
+  toggleHeart
 };

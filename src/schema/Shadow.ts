@@ -4,4 +4,5 @@ export default interface Shadow {
   library: string;
   name: string;
   fullpath: string;
+  favorite: boolean;
 }

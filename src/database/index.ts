@@ -1,20 +1,18 @@
-import fs, { existsSync } from "fs";
-import path from "path";
 import {
-  IndexBuilder,
-  Music,
-  Shadow,
-  CategoryBuilder,
-  FileBuilder,
-  CategoryTypes
-} from "@/schema";
-import {
-  UNKNOWN_IMG,
   UNKNOWN_ALBUM,
-  UNKNOWN_ARTIST
+  UNKNOWN_ARTIST, UNKNOWN_IMG
 } from "@/providers/constants";
-import NodeID3 from "node-id3";
+import {
+  CategoryBuilder,
+  CategoryTypes, FileBuilder, IndexBuilder,
+  Music,
+  Shadow
+} from "@/schema";
+import { remove } from "lodash";
 import dataurl from "dataurl";
+import fs from "fs";
+import NodeID3 from "node-id3";
+import path from "path";
 
 // function getImageTag({ image }: NodeID3.Tags): string {
 //   let img: string;
@@ -97,6 +95,8 @@ class Index implements IndexBuilder {
     );
   }
   readFileSync(): string[] | object {
+    // if(!this.existSync())
+    // return 
     let filecontent = fs.readFileSync(this.fullpath).toString();
     if (this.fileExt === "json") return JSON.parse(filecontent);
     else return filecontent.split("\n").filter(Boolean);
@@ -147,7 +147,8 @@ class Category extends Index implements CategoryBuilder {
   get(catname?: string): string[] {
     if (catname) this.categoryName = catname;
 
-    if (!this.categoryName) throw new Error("category name are provider");
+    // TODO: this logic is bullshit ! delete this later
+    if (!this.categoryName) throw new Error("category name are not provided");
 
     if (!this.existSync()) {
       return [];
@@ -169,10 +170,24 @@ class Shadows {
       "/database/shadows"
     );
   }
-  read(): Promise<Music>[] {
-    throw new Error("Method not implemented.");
+  find(id: string): Shadow | undefined {
+    let shadow: Shadow | undefined = undefined;
+    console.log(path.join(this.correspondingLocation, id + '.json'))
+    if (this.existSync() && fs.existsSync(path.join(this.correspondingLocation, id + '.json')))
+      shadow = JSON.parse(fs.readFileSync(path.join(this.correspondingLocation, id + '.json')).toString())
+    return shadow
   }
-
+  update(id: string, attributes: object) {
+    const x = this.find(id)
+    if (x) {
+      let res = Object.assign({}, x, attributes);
+      fs.writeFileSync(
+        path.join(this.correspondingLocation, id + '.json'),
+        JSON.stringify(res, null, 2))
+      return true
+    }
+    return false
+  }
   createDirectory() {
     if (!this.existSync()) fs.mkdirSync(this.fullpath);
   }
@@ -196,13 +211,14 @@ class Shadows {
     });
   }
 
-  write({ id, fullpath, name, library, modified }: Music): void {
+  write({ id, fullpath, name, library, modified, favorite }: Music): void {
     const x: Shadow = {
       fullpath,
       id,
       library,
       modified,
-      name
+      name,
+      favorite
     };
 
     fs.writeFileSync(
@@ -246,4 +262,49 @@ class RecentlyAddedBuilder extends Index implements FileBuilder {
   }
 }
 
-export { RecentlyAddedBuilder, Shadows, Category };
+class Favorites extends Index implements FileBuilder {
+  private favorites: { id: string, fullpath: string }[] = []
+  constructor() {
+    super("Favorites", undefined, "json");
+    if (!this.existSync()) this.favorites = [];
+    else this.favorites = <{ id: string, fullpath: string }[]>this.readFileSync()
+  }
+  read(): Promise<Music>[] {
+    return this.getAll().map(i => {
+      return this.getMusic(i)
+    })
+  }
+  write(music: Music, ...args: any[]): void {
+    const result = remove(this.favorites, i => {
+      return i.fullpath === music.fullpath;
+    })
+
+    music.favorite = result.length > 0;
+  }
+
+  record(id: string, fullpath: string, value: boolean) {
+    remove(this.favorites, i => {
+      return i.fullpath === fullpath || i.id === id
+    })
+
+    let shd = new Shadows();
+    shd.update(id, { favorite: value })
+
+    if (value)
+      this.favorites.push({ id, fullpath });
+
+    fs.writeFileSync(this.fullpath, JSON.stringify(this.favorites, null, 2));
+  }
+
+  get(id: string): boolean {
+    return this.favorites.some(i => i.id === id);
+  }
+
+  getAll(): string[] {
+    return this.favorites.map(i => i.id)
+  }
+
+}
+
+export { RecentlyAddedBuilder, Shadows, Category, Favorites };
+

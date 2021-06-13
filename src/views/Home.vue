@@ -1,11 +1,6 @@
 <template>
-  <main class="bg-gray-800 text-center text-red-100 w-full overflow-y-scroll">
-    <div
-      class="text-left p-8 transition-all delay-200"
-      :style="{
-        background: `linear-gradient(180deg, rgba(${bgColors[0]},${bgColors[1]},${bgColors[2]},1) -35%, rgba(0,212,255,0) 100%)`
-      }"
-    >
+  <main class="bg-gray-800 text-center text-white w-full overflow-y-scroll" ref="page">
+    <div ref="gradient_pl" class="text-left p-8 transition-all delay-200">
       <!-- bg-gradient-to-b from-green-500  -->
       <!-- card -->
       <h2 class="text-3xl capitalize">good evening</h2>
@@ -15,13 +10,11 @@
           :key="music.id"
           @click="playMusic(music)"
           class="sm:w-6/12 lg:w-1/3 xl:w-1/4"
-          @mouseover="mouseOver(index)"
-          @mouseleave="mouseLeave"
         >
+          <!-- @mouseover="mouseOver(index)"
+          @mouseleave="mouseLeave"-->
           <div class="p-1">
-            <span
-              class="bg-gray-600 bg-opacity-40 flex items-center rounded-md"
-            >
+            <span class="bg-gray-600 bg-opacity-40 flex items-center rounded-md">
               <img
                 class="rounded-l-md w-28 h-28 object-cover"
                 :src="music.img"
@@ -34,9 +27,7 @@
               <span
                 class="capitalize pl-4 py-2 h-28 font-bold text-white flex items-center overflow-hidden"
               >
-                <div class="_3-line-3-dots font-roboto text-lg">
-                  {{ music.title }}
-                </div>
+                <div class="_3-line-3-dots font-roboto text-lg">{{ music.title }}</div>
               </span>
             </span>
           </div>
@@ -70,14 +61,10 @@
             <span class="capitalize px-2 font-bold text-blue-100">
               <h3
                 class="text-lg text-blue-50 whitespace-nowrap overflow-ellipsis w-full overflow-x-hidden"
-              >
-                {{ album.name }}
-              </h3>
+              >{{ album.name }}</h3>
               <div
                 class="text-sm my-2 text-gray-400 overflow-hidden overflow-ellipsis h-11 font-roboto"
-              >
-                by mark francis carandang sdfage ergwergerg erwgwrg
-              </div>
+              >by mark francis carandang sdfage ergwergerg erwgwrg</div>
             </span>
           </span>
         </div>
@@ -92,143 +79,93 @@
 </template>
 
 <script lang="ts">
-import {
-  defineComponent,
-  onMounted,
-  ref,
-  reactive,
-  watch,
-  onUnmounted
-} from "vue";
+import { defineComponent, onMounted, ref, reactive, watch, Ref } from "vue";
 import { ipcRenderer } from "electron";
 import { Message, Music, Notification } from "@/schema";
 import { useStore } from "vuex";
-import { getAverageRGB, fullRoute } from "@/components/frontEndUtils.ts";
+import { getAverageRGB, Listener } from "@/components/frontEndUtils.ts";
 import { emptyAndFillArray } from "../helpers";
 
 // @ts-ignore
 import anime from "animejs/lib/anime.es.js";
 import { useRouter } from "vue-router";
-
+const { componentMixin } = require("@/components/mixins");
 type RGB = [number, number, number];
 
 export default defineComponent({
   name: "Home",
+  mixins: [componentMixin],
   setup() {
     const recentlyAdded: Music[] = reactive([]),
       album = reactive([]);
     const router = useRouter();
     const store = useStore();
-    const questAlert = (params: Notificationd) => {
+    const questAlert = (params: Notification) => {
       store.dispatch("alert", params);
     };
     const imgElements = ref([]);
     const albumsCovers = ref([]);
 
-    const bgColors: number[] = reactive([34, 197, 94]);
-    let hover = false;
-    let back2default: number;
+    const listeners = new Listener();
 
-    const mouseOver = (index: number) => {
-      if (hover) return;
-
-      hover = true;
-
-      const { r, g, b } = getAverageRGB(imgElements.value[index]);
-      chnageBackgound([r, g, b]);
-
-      clearTimeout(back2default);
-      back2default = window.setTimeout(() => {
-        chnageBackgound([0, 0, 0]);
-      }, 5000);
-    };
-
-    const mouseLeave = () => {
-      hover = false;
-    };
-
-    const chnageBackgound = (to: RGB) => {
-      const rgb: { r: number; g: number; b: number } = {
-        r: bgColors[0],
-        g: bgColors[1],
-        b: bgColors[2]
-      };
-
-      anime({
-        targets: rgb,
-        r: to[0],
-        g: to[1],
-        b: to[2],
-        round: 1,
-        easing: "linear",
-        update: function() {
-          bgColors[0] = rgb.r;
-          bgColors[1] = rgb.g;
-          bgColors[2] = rgb.b;
-        }
-      });
-    };
-
-    onUnmounted(() => {
-      ipcRenderer.removeAllListeners(fullRoute.res("recently_played.get"));
-      ipcRenderer.removeAllListeners(fullRoute.res("DB-Changed"));
-      ipcRenderer.removeAllListeners(fullRoute.res("albums"));
+    listeners.register("DB-Changed", () => {
+      questAlert({ title: "re scanning library", type: "refresh" });
+      ipcRenderer.removeAllListeners("albums.res");
+      ipcRenderer.send("albums.req");
     });
 
-    onMounted(() => {
-      console.log("location:", location.href);
+    listeners.register(
+      "albums",
+      (_: any, payload: { image: string; name: string }[]) => {
+        emptyAndFillArray(album, payload);
+      }
+    );
 
-      ipcRenderer.send(fullRoute.req("recently_played.get"));
-      ipcRenderer.send(fullRoute.req("albums"));
-
-      ipcRenderer.on(
-        fullRoute.res("recently_played.get"),
-        (_, payload: Music[]) => {
-          console.log("recently played");
-          emptyAndFillArray(recentlyAdded, payload.splice(0, 4));
-        }
-      );
-
-      ipcRenderer.on(
-        fullRoute.res("albums"),
-        (_, payload: { image: string; name: string }[]) => {
-          console.log("albumd");
-          emptyAndFillArray(album, payload);
-        }
-      );
-
-      ipcRenderer.on("DB-Changed", () => {
-        questAlert({ title: "re scanning library", type: "refresh" });
-
-        ipcRenderer.send(fullRoute.req("albums"));
-      });
+    listeners.register("favorite/all", (_: any, payload: any) => {
+      console.log(payload);
     });
+
+    listeners.register("recently_played.get", (_: any, payload: Music[]) => {
+      console.log("recently played");
+      emptyAndFillArray(recentlyAdded, payload.splice(0, 4));
+    });
+
+    function getListeners(): Listener {
+      return listeners;
+    }
 
     watch(album, () => {
-      setTimeout(() => {
-        anime({
-          targets: albumsCovers.value,
-          translateY: "-100%",
-          duration: 900,
-          opacity: [0, 1],
-          easing: "easeOutQuint",
-          delay: function(el: any, i: number) {
-            return i * 120;
-          }
-        });
-      }, 1200);
+      setTimeout(
+        () => {
+          anime({
+            targets: albumsCovers.value,
+            translateY: "-100%",
+            duration: 900,
+            opacity: [0, 1],
+            easing: "easeOutQuint",
+            delay: function(el: any, i: number) {
+              return i * 120;
+            }
+          });
+        },
+        history.state.back === null && history.state.forward === null
+          ? 1200
+          : 100
+      );
     });
+
     return {
       lsCategory: (catType: string, catName: string) => {
         router.push(`/category/${catType}/${catName}`);
       },
+      getListeners,
+      // gradient_pl,
       albumsCovers,
       album,
       recentlyAdded,
-      mouseOver,
-      mouseLeave,
+      // mouseOver,
+      // mouseLeave,
       imgElements,
-      bgColors,
       playMusic: (song: Music) => {
         store.dispatch("playMusic", song);
       }

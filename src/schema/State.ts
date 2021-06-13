@@ -12,8 +12,6 @@ export default interface State {
     status: "playing" | "paused" | "empty" | "stopped" | "finished";
     duration: number;
     currentTime: number;
-    pregressTracker?: number;
-    currentTimeTracker: number;
   };
   music: Music;
 }

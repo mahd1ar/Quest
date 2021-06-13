@@ -11,7 +11,7 @@ import { flattenDeep } from "lodash";
 import NodeID3 from "node-id3";
 import path from "path";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
-import { RecentlyAddedBuilder, Shadows, Category } from "./database";
+import { RecentlyAddedBuilder, Shadows, Category, Favorites } from "./database";
 import { areDiffrent } from "./helpers";
 import { UNKNOWN_ALBUM, UNKNOWN_ARTIST } from "./providers/constants";
 import { route } from "./providers/routerWrapper";
@@ -45,7 +45,7 @@ async function createWindow() {
     }
   });
 
-  win.webContents.on("did-finish-load", function() {
+  win.webContents.on("did-finish-load", function () {
     win.show();
   });
 
@@ -147,14 +147,13 @@ ipcMain.on("minimize-appication", () => {
   BrowserWindow.getAllWindows()[0].minimize();
 });
 
-// let timeoutHandler: NodeJS.Timeout
 function startBuildingDatabase(absPath: string[]) {
-  // <NEW>
+  // <NEW> 
   console.log("START BUILDING DATABASE");
   const albums = new Category("album");
   const artist = new Category("artist");
   const folder = new Category("library");
-
+  const favorite = new Favorites()
   const shadow = new Shadows();
 
   const recentlyAdded = new RecentlyAddedBuilder();
@@ -164,7 +163,6 @@ function startBuildingDatabase(absPath: string[]) {
   shadow.dump();
   folder.dump();
   recentlyAdded.dump();
-
   shadow.createDirectory();
 
   const musicObjects = seekMusic(absPath);
@@ -181,9 +179,11 @@ function startBuildingDatabase(absPath: string[]) {
         library: shade.library,
         modified: shade.modified,
         name: shade.name,
-        title: musicTags.title || shade.name.replace(".mp3", "")
+        title: musicTags.title || shade.name.replace(".mp3", ""),
+        favorite: false
       };
 
+      favorite.write(music);
       albums.write(music, musicObjects.length === inx + 1);
       artist.write(music, musicObjects.length === inx + 1);
       folder.write(music, musicObjects.length === inx + 1);
@@ -243,15 +243,14 @@ function watchForChange(path: string, calback: Function): chokidar.FSWatcher {
 }
 
 function watchAndIndex(libraries: string[]) {
-  // rebuild()
-  // ***
+  console.log("watch and index");
+  // rebuild
   startBuildingDatabase(libraries);
 
   watcherInstance.forEach(watchre => watchre.close());
   watcherInstance.splice(0, watcherInstance.length);
 
   BrowserWindow.getAllWindows()[0].webContents.send("DB-Changed");
-  console.log("EVENT FIREDDDDDD");
 
   libraries.forEach(lib => {
     const w = watchForChange(lib, () => {
@@ -264,7 +263,7 @@ function watchAndIndex(libraries: string[]) {
 // entry point
 function start(libraries: string[]) {
   const startJob = new Task(questQueue, async task => {
-    console.log("************)))");
+
     console.log({ libraries });
     if (libraries.length === 0) {
       task.done();
@@ -274,7 +273,7 @@ function start(libraries: string[]) {
     const hasChanged = compair(libraries);
     console.log({ hasChanged });
     if (hasChanged) {
-      console.log("=====>librareis has changed");
+      console.log(">librareis has changed");
       startBuildingDatabase(libraries);
       task.done();
     } else {

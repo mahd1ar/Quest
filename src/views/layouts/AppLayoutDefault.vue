@@ -1,32 +1,27 @@
 <template>
   <div class="flex h-full overflow-hidden relative" id="default-layout">
     <div class="w-full xl:w-3/12 sm:w-4/12 bg-black text-white flex flex-col">
-      <div class="w-52 py-5 px-8">
-        <img
+      <div class="w-full py-5 px-3">
+        <!-- <img
           src="//s22.q4cdn.com/540910603/files/design/Spotify_Logo_White.png"
           class="inline"
           alt="logo"
-        />
+        />-->
+        <h1 class="text-5xl text-white">Quest</h1>
       </div>
       <div class="px-3">
         <ul>
-          <li
-            class="bg-gray-700 text-gray-100 px-2 flex items-center rounded-sm capitalize"
-          >
-            <svg
-              class="fill-current"
-              viewBox="0 0 48 48"
-              width="24px"
-              height="48px"
-            >
+          <router-link to="/" class="px-2 flex items-center rounded-sm capitalize">
+            <svg class="fill-current" viewBox="0 0 48 48" width="24px" height="48px">
               <path
                 d="M39.5,43h-9c-1.381,0-2.5-1.119-2.5-2.5v-9c0-1.105-0.895-2-2-2h-4c-1.105,0-2,0.895-2,2v9c0,1.381-1.119,2.5-2.5,2.5h-9	C7.119,43,6,41.881,6,40.5V21.413c0-2.299,1.054-4.471,2.859-5.893L23.071,4.321c0.545-0.428,1.313-0.428,1.857,0L39.142,15.52	C40.947,16.942,42,19.113,42,21.411V40.5C42,41.881,40.881,43,39.5,43z"
               />
             </svg>
             <span class="px-4">home</span>
-          </li>
+          </router-link>
 
-          <li
+          <router-link
+            to="#"
             class="text-gray-400 hover:bg-opacity-10 hover:bg-white px-2 flex items-center rounded-sm capitalize"
           >
             <svg
@@ -43,10 +38,10 @@
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <span class="px-4">search</span>
-          </li>
+          </router-link>
 
           <li
-            class="text-gray-400 hover:bg-opacity-10 hover:bg-white px-2 flex items-center rounded-sm capitalize cursor-pointer"
+            class="text-gray-00 hover:bg-opacity-10 hover:bg-white px-2 flex items-center rounded-sm capitalize cursor-pointer"
           >
             <svg
               class="fill-current"
@@ -77,7 +72,8 @@
 
       <div class="px-3 py-3">
         <ul>
-          <li
+          <router-link
+            to="/favorite"
             class="text-gray-400 hover:bg-opacity-10 hover:bg-white px-2 flex items-center rounded-sm capitalize cursor-pointer"
           >
             <svg
@@ -89,24 +85,77 @@
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="feather feather-plus"
             >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
+              <path :d="icons.like" />
             </svg>
             <span class="px-4">liked songs</span>
-          </li>
+          </router-link>
         </ul>
       </div>
+
+      <div class="px-3 py-3 mt-auto">
+        <ul>
+          <router-link
+            to="/setting"
+            class="text-gray-400 hover:bg-opacity-10 hover:bg-white px-2 flex items-center rounded-sm capitalize cursor-pointer"
+          >
+            <svg
+              width="24px"
+              height="48px"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path :d="icons.settings" />
+            </svg>
+            <span class="px-4">settings</span>
+          </router-link>
+        </ul>
+      </div>
+      <transition name="stretched" mode="out-in">
+        <!-- GAP -->
+        <div class="gap" v-show="$store.state.player.status !== 'empty'"></div>
+      </transition>
     </div>
     <slot />
   </div>
 </template>
 
 <script>
+import { mdiHeart, mdiCog } from "@mdi/js";
 export default {
-  name: "AppLayoutDefault"
+  name: "AppLayoutDefault",
+  setup() {
+    return {
+      icons: { like: mdiHeart, settings: mdiCog }
+    };
+  }
 };
 </script>
 
-<style></style>
+<style lang="scss">
+.router-link-active {
+  @apply bg-gray-700 text-gray-100;
+}
+
+.gap {
+  min-height: 6rem;
+}
+
+.stretched {
+  &-enter-from,
+  &-leave-to {
+    transition: all 0.8s ease;
+    min-height: 0rem;
+  }
+
+  &-leave-from,
+  &-enter-to {
+    transition: all 0.8s ease;
+    min-height: 6rem;
+  }
+}
+</style>

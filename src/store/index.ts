@@ -24,8 +24,6 @@ const store = createStore({
         status: "empty",
         duration: 0,
         currentTime: 0,
-        // pregressTracker: 0,
-        currentTimeTracker: 0
       },
       music: {
         album: "",
@@ -36,7 +34,8 @@ const store = createStore({
         modified: 0,
         name: "",
         title: "",
-        img: ""
+        img: "",
+        favorite: false
       }
     };
     return state;

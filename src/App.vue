@@ -1,19 +1,14 @@
 <template>
-  <div id="app" class="h-screen flex flex-col relative overflow-hidden">
+  <div id="app" class="h-screen flex flex-col relative overflow-hidden reletive">
     <notification />
     <transition name="fade">
       <div
         id="welcome"
         v-if="!documentLoaded"
         class="bg-gray-900 flex justify-center items-center w-screen h-screen fixed inset-0 text-center text-blue-100 z-50 text-7xl"
-      >
-        Quest 👽
-      </div>
+      >Quest {{ ['👽','🎈','🍕','🤖','👾','😇'].sort(()=>Math.random() - Math.random())[0] }}</div>
     </transition>
-    <div
-      id="actionbar"
-      class="w-full flex bg-gray-900 text-blue-200 justify-end items-center h-8"
-    >
+    <div id="actionbar" class="w-full flex bg-gray-900 text-blue-200 justify-end items-center h-8">
       <div class="w-full" id="drag-area">.</div>
       <div class="flex">
         <div
@@ -28,11 +23,21 @@
         </div>
       </div>
     </div>
-    <component :is="layout">
-      <router-view />
-    </component>
+
+    <!-- <component :is="layout">
+        <router-view />
+    </component>-->
+
+    <router-view v-slot="{ Component }">
+      <!-- <transition name="fadeone" mode="in-out"> -->
+      <component :is="layout">
+        <component :is="Component" />
+      </component>
+      <!-- </transition> -->
+    </router-view>
+
     <transition name="v">
-      <player v-show="showPlayerBox" />
+      <player v-if="showPlayerBox" />
     </transition>
   </div>
 </template>
@@ -54,7 +59,7 @@ export default defineComponent({
     const route = useRoute();
     const store = useStore();
     const documentLoaded = ref(false);
-
+    const refreshIndex = ref(0);
     const questAlert = (params: Notif) => {
       store.dispatch("alert", params);
     };
@@ -88,11 +93,15 @@ export default defineComponent({
       close: mdiWindowClose
     };
 
-    const showPlayerBox = computed(() => store.state.player.status !== "empty");
+    const showPlayerBox = computed(() => {
+      return store.state.player.status !== "empty";
+    });
+
     return {
       showPlayerBox,
       icons,
       documentLoaded,
+      refreshIndex,
       actionbar: (action: "close" | "minimize" | "maximize") => {
         switch (action) {
           case "close":
@@ -165,7 +174,30 @@ export default defineComponent({
   &-leave-to {
     transition: all 0.8s ease;
     opacity: 0;
-    transform: translateY(100%);
+    transform: translateY(150%) scale(0.8);
+    transform-origin: center bottom;
+  }
+
+  &-leave-from,
+  &-enter-to {
+    transition: all 0.8s ease;
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+
+  &-enter-active,
+  &-leave-active {
+    position: absolute;
+  }
+}
+
+.fadeone {
+  &-enter-from,
+  &-leave-to {
+    transition: all 0.8s ease;
+    opacity: 0;
+    transform: translateY(150%);
+    transform-origin: center bottom;
   }
 
   &-leave-from,
@@ -177,6 +209,7 @@ export default defineComponent({
 
   &-enter-active,
   &-leave-active {
+    inset: 0;
     position: absolute;
   }
 }
