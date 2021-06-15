@@ -22,10 +22,13 @@
             </svg>
           </div>
           <div class="flex-grow sm:text-left text-center mt-6 sm:mt-0">
-            <h2 class="text-gray-900 text-lg title-font font-medium mb-2">Shooting Stars</h2>
-            <p
-              class="leading-relaxed text-base"
-            >Blue bottle crucifix vinyl post-ironic four dollar toast vegan taxidermy. Gastropub indxgo juice poutine.</p>
+            <h2 class="text-gray-900 text-lg title-font font-medium mb-2">
+              Shooting Stars
+            </h2>
+            <p class="leading-relaxed text-base">
+              Blue bottle crucifix vinyl post-ironic four dollar toast vegan
+              taxidermy. Gastropub indxgo juice poutine.
+            </p>
             <a class="mt-3 text-indigo-500 inline-flex items-center">
               Learn More
               <svg
@@ -46,10 +49,13 @@
           class="flex items-center lg:w-3/5 mx-auto border-b pb-10 mb-10 border-gray-200 sm:flex-row flex-col"
         >
           <div class="flex-grow sm:text-left text-center mt-6 sm:mt-0">
-            <h2 class="text-gray-900 text-lg title-font font-medium mb-2">The Catalyzer</h2>
-            <p
-              class="leading-relaxed text-base"
-            >Blue bottle crucifix vinyl post-ironic four dollar toast vegan taxidermy. Gastropub indxgo juice poutine.</p>
+            <h2 class="text-gray-900 text-lg title-font font-medium mb-2">
+              The Catalyzer
+            </h2>
+            <p class="leading-relaxed text-base">
+              Blue bottle crucifix vinyl post-ironic four dollar toast vegan
+              taxidermy. Gastropub indxgo juice poutine.
+            </p>
             <a class="mt-3 text-indigo-500 inline-flex items-center">
               Learn More
               <svg
@@ -101,10 +107,13 @@
             </svg>
           </div>
           <div class="flex-grow sm:text-left text-center mt-6 sm:mt-0">
-            <h2 class="text-gray-900 text-lg title-font font-medium mb-2">The 400 Blows</h2>
-            <p
-              class="leading-relaxed text-base"
-            >Blue bottle crucifix vinyl post-ironic four dollar toast vegan taxidermy. Gastropub indxgo juice poutine.</p>
+            <h2 class="text-gray-900 text-lg title-font font-medium mb-2">
+              The 400 Blows
+            </h2>
+            <p class="leading-relaxed text-base">
+              Blue bottle crucifix vinyl post-ironic four dollar toast vegan
+              taxidermy. Gastropub indxgo juice poutine.
+            </p>
             <a class="mt-3 text-indigo-500 inline-flex items-center">
               Learn More
               <svg
@@ -123,7 +132,9 @@
         </div>
         <button
           class="flex mx-auto mt-20 text-white bg-indigo-500 border-0 py-2 px-8 focus:outline-none hover:bg-indigo-600 rounded text-lg"
-        >Button</button>
+        >
+          Button
+        </button>
       </div>
     </section>
 
@@ -134,11 +145,11 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-const { componentMixin } = require("@/components/mixins");
+const { lifeCycleMixin } = require("@/components/mixins");
 
 export default defineComponent({
   name: "Home",
-  mixins: [componentMixin],
+  mixins: [lifeCycleMixin],
   setup() {
     return {};
   }

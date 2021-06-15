@@ -23,7 +23,7 @@ const store = createStore({
         preSong: undefined,
         status: "empty",
         duration: 0,
-        currentTime: 0,
+        currentTime: 0
       },
       music: {
         album: "",

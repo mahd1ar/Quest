@@ -2,7 +2,7 @@ import { createRouter, createWebHashHistory } from "vue-router";
 import Home from "../views/Home.vue";
 import Setting from "../views/Setting.vue";
 import Category from "@/views/Category.vue";
-import Favorite from '@/views/Favorite.vue';
+import Favorite from "@/views/Favorite.vue";
 
 const routes = [
   {

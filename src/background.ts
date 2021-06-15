@@ -12,7 +12,7 @@ import NodeID3 from "node-id3";
 import path from "path";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import { RecentlyAddedBuilder, Shadows, Category, Favorites } from "./database";
-import { areDiffrent } from "./helpers";
+import { areDiffrent, timeout } from "./helpers";
 import { UNKNOWN_ALBUM, UNKNOWN_ARTIST } from "./providers/constants";
 import { route } from "./providers/routerWrapper";
 import { MainQueue, Task } from "./providers/utilities";
@@ -45,7 +45,7 @@ async function createWindow() {
     }
   });
 
-  win.webContents.on("did-finish-load", function () {
+  win.webContents.on("did-finish-load", function() {
     win.show();
   });
 
@@ -118,10 +118,10 @@ ipcMain.on(
   }
 );
 
-ipcMain.on("add-new-lib", event => {
+ipcMain.on("add-new-lib.req", event => {
   const res = dialog.showOpenDialogSync({ properties: ["openDirectory"] });
   if (res) {
-    event.returnValue = res[0];
+    event.reply("add-new-lib.res", res[0]);
   }
 });
 
@@ -148,12 +148,12 @@ ipcMain.on("minimize-appication", () => {
 });
 
 function startBuildingDatabase(absPath: string[]) {
-  // <NEW> 
+  // <NEW>
   console.log("START BUILDING DATABASE");
   const albums = new Category("album");
   const artist = new Category("artist");
   const folder = new Category("library");
-  const favorite = new Favorites()
+  const favorite = new Favorites();
   const shadow = new Shadows();
 
   const recentlyAdded = new RecentlyAddedBuilder();
@@ -250,7 +250,7 @@ function watchAndIndex(libraries: string[]) {
   watcherInstance.forEach(watchre => watchre.close());
   watcherInstance.splice(0, watcherInstance.length);
 
-  BrowserWindow.getAllWindows()[0].webContents.send("DB-Changed");
+  BrowserWindow.getAllWindows()[0].webContents.send("DB-Changed.res");
 
   libraries.forEach(lib => {
     const w = watchForChange(lib, () => {
@@ -262,15 +262,15 @@ function watchAndIndex(libraries: string[]) {
 
 // entry point
 function start(libraries: string[]) {
-  const startJob = new Task(questQueue, async task => {
-
+  const startJob = new Task(questQueue, task => {
     console.log({ libraries });
-    if (libraries.length === 0) {
-      task.done();
-      return;
-    }
-
+    // FOR NOW
+    // if (libraries.length === 0) {
+    //   task.done();
+    //   return;
+    // }
     const hasChanged = compair(libraries);
+
     console.log({ hasChanged });
     if (hasChanged) {
       console.log(">librareis has changed");
@@ -293,16 +293,13 @@ function start(libraries: string[]) {
 }
 
 ipcMain.on("quest-start", (_, args: string[]) => {
-  args = ["C:\\Users\\User\\Music"];
-  start(args); // ["/home/mahdiyar/Music"];
+  start(args);
 });
 
-ipcMain.on("sleep-sync", (event, params) => {
-  console.log(params);
-  setTimeout(() => {
-    event.reply("sleep-sync");
-  }, Number(params));
-});
+// ipcMain.on("sleep-sync", async (event, params) => {
+//   await timeout(Number(params))
+//   event.reply("sleep-sync");
+// });
 
 initRoutes(questQueue);
 questQueue.start();

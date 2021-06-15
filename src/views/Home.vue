@@ -1,12 +1,15 @@
 <template>
-  <main class="bg-gray-800 text-center text-white w-full overflow-y-scroll" ref="page">
+  <main
+    class="bg-gray-800 text-center text-white w-full overflow-y-scroll relative"
+    ref="page"
+  >
     <div ref="gradient_pl" class="text-left p-8 transition-all delay-200">
       <!-- bg-gradient-to-b from-green-500  -->
       <!-- card -->
       <h2 class="text-3xl capitalize">good evening</h2>
       <div class="my-6 flex flex-wrap">
         <div
-          v-for="(music, index) in recentlyAdded"
+          v-for="music in recentlyAdded"
           :key="music.id"
           @click="playMusic(music)"
           class="sm:w-6/12 lg:w-1/3 xl:w-1/4"
@@ -14,31 +17,35 @@
           <!-- @mouseover="mouseOver(index)"
           @mouseleave="mouseLeave"-->
           <div class="p-1">
-            <span class="bg-gray-600 bg-opacity-40 flex items-center rounded-md">
+            <span
+              class="bg-gray-600 bg-opacity-40 flex items-center rounded-md"
+            >
               <img
                 class="rounded-l-md w-28 h-28 object-cover"
                 :src="music.img"
-                :ref="
-                  el => {
-                    if (el) imgElements[index] = el;
-                  }
-                "
               />
               <span
                 class="capitalize pl-4 py-2 h-28 font-bold text-white flex items-center overflow-hidden"
               >
-                <div class="_3-line-3-dots font-roboto text-lg">{{ music.title }}</div>
+                <div class="_3-line-3-dots font-roboto text-lg">
+                  {{ music.title }}
+                </div>
               </span>
             </span>
           </div>
         </div>
       </div>
     </div>
-    <div id="recenty played" class="text-left p-8">
-      <h2 class="text-3xl capitalize my-6">Albums</h2>
+
+    <!-- Albums -->
+
+    <div class="text-left p-8">
+      <h2 class="text-3xl capitalize my-6 px-3" v-show="albums.length > 0">
+        Albums
+      </h2>
       <div class="flex overflow-x-hidden">
         <div
-          v-for="(album, index) in album"
+          v-for="(album, index) in albums"
           :key="index"
           class="2xl:w-1/6 xl:w-1/5 lg:w-1/4 sm:w-1/3 px-3"
         >
@@ -61,63 +68,78 @@
             <span class="capitalize px-2 font-bold text-blue-100">
               <h3
                 class="text-lg text-blue-50 whitespace-nowrap overflow-ellipsis w-full overflow-x-hidden"
-              >{{ album.name }}</h3>
+              >
+                {{ album.name }}
+              </h3>
               <div
                 class="text-sm my-2 text-gray-400 overflow-hidden overflow-ellipsis h-11 font-roboto"
-              >by mark francis carandang sdfage ergwergerg erwgwrg</div>
+              >
+                by mark francis carandang sdfage ergwergerg erwgwrg
+              </div>
             </span>
           </span>
         </div>
       </div>
     </div>
+
+    <!-- empty screen! -->
+    <div
+      v-show="albums.length === 0"
+      class="bg-inherit w-full h-full absolute inset-0 flex flex-col justify-center items-center"
+    >
+      <div class="text-lg">No music found</div>
+      <div class="text-base text-gray-400">
+        To add a new library, navigate to settings > add library
+      </div>
+    </div>
     <!-- GAP -->
     <div class="h-24"></div>
   </main>
-  <!-- <transition name="v">
-    <player v-show="showPlayerBox" />
-  </transition>-->
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, ref, reactive, watch, Ref } from "vue";
-import { ipcRenderer } from "electron";
+import { defineComponent, ref, reactive, watch, Ref } from "vue";
 import { Message, Music, Notification } from "@/schema";
-import { useStore } from "vuex";
-import { getAverageRGB, Listener } from "@/components/frontEndUtils.ts";
+import { useStore, mapActions } from "vuex";
+import { Listener } from "@/components/frontEndUtils.ts";
 import { emptyAndFillArray } from "../helpers";
 
 // @ts-ignore
 import anime from "animejs/lib/anime.es.js";
 import { useRouter } from "vue-router";
-const { componentMixin } = require("@/components/mixins");
+const { lifeCycleMixin } = require("@/components/mixins");
 type RGB = [number, number, number];
 
 export default defineComponent({
   name: "Home",
-  mixins: [componentMixin],
+  mixins: [lifeCycleMixin],
   setup() {
-    const recentlyAdded: Music[] = reactive([]),
-      album = reactive([]);
     const router = useRouter();
     const store = useStore();
+
+    const recentlyAdded: Music[] = reactive([]),
+      albums: { image: string; name: string }[] = reactive([]),
+      albumsCovers = ref([]);
+
     const questAlert = (params: Notification) => {
       store.dispatch("alert", params);
     };
-    const imgElements = ref([]);
-    const albumsCovers = ref([]);
 
     const listeners = new Listener();
 
     listeners.register("DB-Changed", () => {
       questAlert({ title: "re scanning library", type: "refresh" });
-      ipcRenderer.removeAllListeners("albums.res");
-      ipcRenderer.send("albums.req");
+      // ipcRenderer.removeAllListeners("albums.res");
+      // ipcRenderer.send("albums.req");
+      listeners.get().forEach(({ name }) => {
+        listeners.emit(name);
+      });
     });
 
     listeners.register(
       "albums",
       (_: any, payload: { image: string; name: string }[]) => {
-        emptyAndFillArray(album, payload);
+        emptyAndFillArray(albums, payload);
       }
     );
 
@@ -134,7 +156,7 @@ export default defineComponent({
       return listeners;
     }
 
-    watch(album, () => {
+    watch(albums, () => {
       setTimeout(
         () => {
           anime({
@@ -155,26 +177,23 @@ export default defineComponent({
     });
 
     return {
+      ...mapActions(["playMusic"]),
       lsCategory: (catType: string, catName: string) => {
         router.push(`/category/${catType}/${catName}`);
       },
       getListeners,
-      // gradient_pl,
       albumsCovers,
-      album,
-      recentlyAdded,
-      // mouseOver,
-      // mouseLeave,
-      imgElements,
-      playMusic: (song: Music) => {
-        store.dispatch("playMusic", song);
-      }
+      albums,
+      recentlyAdded
     };
   }
 });
 </script>
 
 <style lang="scss">
+.bg-inherit {
+  background: inherit;
+}
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   cursor: pointer;

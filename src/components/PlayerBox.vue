@@ -2,19 +2,27 @@
   <div class="absolute bg-black w-screen bottom-0 h-24 flex flex-row">
     <div id="cover-and-title" class="flex w-1/3">
       <div id="cover" class="w-24 h-24 p-2">
-        <img v-show="currentMusic.img" :src="currentMusic.img" class="object-cover h-full w-full" />
+        <img
+          v-show="currentMusic.img"
+          :src="currentMusic.img"
+          class="object-cover h-full w-full"
+        />
       </div>
       <div id="title" class="w-8/12 text-gray-200 flex flex-col justify-center">
         <h2
           class="font-bold overflow-ellipsis whitespace-nowrap overflow-x-hidden"
-        >{{ currentMusic.title }}</h2>
+        >
+          {{ currentMusic.title }}
+        </h2>
         <div
           class="text-gray-300 overflow-ellipsis whitespace-nowrap overflow-x-hidden capitalize"
-        >{{ currentMusic.album }}</div>
+        >
+          {{ currentMusic.album }}
+        </div>
       </div>
     </div>
     <div id="controlers" class="w-1/3 flex flex-col h-full">
-      <div class="h-3/5 flex justify-center items-center">
+      <div class="h-3/5 flex justify-center items-center relative">
         <div
           class="rounded-full h-8 w-8 text-gray-300 hover:text-gray-100 cursor-pointer flex mx-2"
         >
@@ -23,11 +31,12 @@
               <path
                 d="M30.5,2.62a1,1,0,0,0-1,0L7.82,15.13a1,1,0,0,0,0,1.74L29.5,29.38a1,1,0,0,0,1.5-.86v-25A1,1,0,0,0,30.5,2.62ZM29,26.78,10.32,16,29,5.22Z"
               />
-              <path d="M2,5.2a1,1,0,0,0-1,1V25.8a1,1,0,0,0,2,0V6.2A1,1,0,0,0,2,5.2Z" />
+              <path
+                d="M2,5.2a1,1,0,0,0-1,1V25.8a1,1,0,0,0,2,0V6.2A1,1,0,0,0,2,5.2Z"
+              />
             </g>
           </svg>
         </div>
-
         <div
           v-if="musicStatus === `paused` || musicStatus === 'finished'"
           @click="resumeMusic"
@@ -47,8 +56,12 @@
         >
           <svg class="p-2 w-full fill-current" viewBox="0 0 32 32">
             <g>
-              <path d="M7.6,1a1,1,0,0,0-1,1V30a1,1,0,0,0,2,0V2A1,1,0,0,0,7.6,1Z" />
-              <path d="M24.4,1a1,1,0,0,0-1,1V30a1,1,0,0,0,2,0V2A1,1,0,0,0,24.4,1Z" />
+              <path
+                d="M7.6,1a1,1,0,0,0-1,1V30a1,1,0,0,0,2,0V2A1,1,0,0,0,7.6,1Z"
+              />
+              <path
+                d="M24.4,1a1,1,0,0,0-1,1V30a1,1,0,0,0,2,0V2A1,1,0,0,0,24.4,1Z"
+              />
             </g>
           </svg>
         </div>
@@ -61,29 +74,34 @@
               <path
                 d="M24.18,15.13,2.5,2.62A1,1,0,0,0,1,3.48v25a1,1,0,0,0,1.5.86L24.18,16.87A1,1,0,0,0,24.18,15.13ZM3,26.78V5.22L21.68,16Z"
               />
-              <path d="M30,5.2a1,1,0,0,0-1,1V25.8a1,1,0,0,0,2,0V6.2A1,1,0,0,0,30,5.2Z" />
+              <path
+                d="M30,5.2a1,1,0,0,0-1,1V25.8a1,1,0,0,0,2,0V6.2A1,1,0,0,0,30,5.2Z"
+              />
             </g>
           </svg>
         </div>
-        <button :disabled="heartIconHalt" class="rounded-full h-8 w-8 cursor-pointer flex mx-2">
-          <div ref="heartIconPl" @click="makeFavorite"></div>
+
+        <button
+          :disabled="heartIconHalt"
+          class="rounded-full h-8 w-8 cursor-pointer flex mx-2 absolute right-0"
+        >
+          <div ref="heartIconRef" @click="makeFavorite"></div>
         </button>
       </div>
       <div class="h-2/5 w-full flex justify-between items-center">
         <span class="text-sm text-gray-200 w-12 text-left">
-          {{
-          currentTime
-          }}
+          {{ currentTime }}
         </span>
         <input v-model="seek" type="range" class="w-full h-1 mx-2" />
         <span class="text-sm text-gray-200 w-12 text-right">
-          {{
-          duration
-          }}
+          {{ duration }}
         </span>
       </div>
     </div>
-    <div id="volume" class="w-1/3 flex justify-end items-center text-gray-100 p-3">
+    <div
+      id="volume"
+      class="w-1/3 flex justify-end items-center text-gray-100 p-3"
+    >
       <div class="w-4 mx-1">
         <svg viewBox="0 0 32 32" class="fill-current">
           <g>
@@ -108,11 +126,19 @@
           class="feather feather-volume-2"
         >
           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+          <path
+            d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"
+          />
         </svg>
       </div>
       <div class="w-24">
-        <input class="w-full max-h-1 hover:max-h-2" max="100" min="0" v-model="volume" type="range" />
+        <input
+          class="w-full max-h-1 hover:max-h-2"
+          max="100"
+          min="0"
+          v-model="volume"
+          type="range"
+        />
       </div>
 
       <div class="w-4 mx-1">
@@ -132,7 +158,7 @@ import { useStore, mapActions } from "vuex";
 
 import lottie, { AnimationItem } from "lottie-web";
 import { Listener } from "./frontEndUtils";
-const { componentMixin } = require("@/components/mixins");
+const { lifeCycleMixin } = require("@/components/mixins");
 
 const secToMin = (sec: number): string =>
   String(Math.floor(sec / 60)) +
@@ -142,11 +168,11 @@ const secToMin = (sec: number): string =>
 export default defineComponent({
   name: "Player",
   components: {},
-  mixins: [componentMixin],
+  mixins: [lifeCycleMixin],
   setup() {
     const store = useStore();
     let heartIcon: AnimationItem;
-    const heartIconPl: Ref<HTMLDocument> | Ref<null> = ref(null);
+    const heartIconRef: Ref<any> = ref(null);
     const heartIconHalt = ref(false);
     const listeners = new Listener();
 
@@ -176,37 +202,44 @@ export default defineComponent({
       return listeners;
     }
 
+    function liked() {
+      heartIcon.goToAndPlay(150);
+      heartIcon.addEventListener("complete", () => {
+        heartIconHalt.value = false;
+      });
+    }
+
+    function disliked() {
+      heartIcon.stop();
+      heartIconHalt.value = false;
+    }
+
     watch(
       () => store.state.music.favorite,
       newVal => {
-        console.log("favorite", store.state.music.favorite);
+        console.log("favorite", newVal);
         if (newVal) {
-          heartIcon.goToAndPlay(150);
-          heartIcon.addEventListener("complete", () => {
-            heartIconHalt.value = false;
-          });
+          liked();
         } else {
-          heartIcon.stop();
-          heartIconHalt.value = false;
+          disliked();
         }
       }
     );
 
     onMounted(() => {
       heartIcon = lottie.loadAnimation({
-        // @ts-ignore
-        container: heartIconPl.value as Element, //element, // the dom element that will contain the animation
+        container: heartIconRef.value as Element,
         renderer: "svg",
         loop: false,
-        autoplay: false,
-        path: "favorite.json" // the path to the animation json
+        autoplay: store.state.music.favorite,
+        path: "favorite.json"
       });
     });
 
     return {
       getListeners,
       makeFavorite,
-      heartIconPl,
+      heartIconRef,
       heartIconHalt,
       musicStatus: computed(() => store.getters.musicStatus),
       ...mapActions(["resumeMusic", "pauseMusic"]),

@@ -20,7 +20,7 @@ export function initRoutes(questQueue: MainQueue) {
   });
 
   route("category", questQueue, params => {
-    console.log(params)
+    console.log(params);
     const categoryType: CategoryTypes = params.payload!.categoryType;
     const categoryName: string = params.payload!.categoryName;
 
@@ -36,15 +36,15 @@ export function initRoutes(questQueue: MainQueue) {
   });
 
   route("favorite/set", questQueue, ({ payload }) => {
-    let success = true
+    let success = true;
     try {
-      console.log("favorite/set", payload)
+      console.log("favorite/set", payload);
       const favs = new Favorites();
-      favs.record(payload!.id, payload!.fullpath, payload!.value)
+      favs.record(payload!.id, payload!.fullpath, payload!.value);
     } catch (error) {
       success = false;
     }
-    console.log({ success })
+    console.log({ success });
     return success;
   });
 

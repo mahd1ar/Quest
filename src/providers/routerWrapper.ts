@@ -16,7 +16,7 @@ export function route(
       try {
         const responce = callback(params);
         responder(responce, (e: any) => {
-          console.log(routeValueRes)
+          console.log(routeValueRes);
           event.reply(routeValueRes, e);
         });
       } catch (error) {

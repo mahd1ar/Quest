@@ -5,7 +5,6 @@ import State from "./State";
 import Notification from "./Notification";
 import Shadow from "./Shadow";
 import ID3 from "./ID3";
-import Categury from "./Categury";
 
 // export default interface IndexBuilder {
 //   process(music: Shadow, params: any): void
@@ -45,7 +44,6 @@ export {
   CategoryBuilder,
   CategoryTypes,
   FileBuilder,
-  Categury,
   Message,
   Notification,
   State,

@@ -16,9 +16,7 @@ const seek = (state: State, progressPrecentage: string | number) => {
   state.player.progress = Number(progressPrecentage);
 
   console.log((Number(progressPrecentage) / 100) * state.player.duration);
-  audioElement.seek(
-    (Number(progressPrecentage) / 100) * state.player.duration
-  );
+  audioElement.seek((Number(progressPrecentage) / 100) * state.player.duration);
 
   if (state.player.status === "playing")
     currentTimeTracker = window.setInterval(() => {
@@ -27,9 +25,8 @@ const seek = (state: State, progressPrecentage: string | number) => {
         clearInterval(currentTimeTracker);
         state.player.status = "finished";
       }
-    }, 1000)
-
-}
+    }, 1000);
+};
 
 const pauseMusic = (state: State) => {
   state.player.status = "paused";
@@ -37,7 +34,7 @@ const pauseMusic = (state: State) => {
   howlerInstance[0].pause();
 
   clearInterval(currentTimeTracker);
-}
+};
 
 const resumeMusic = (state: State) => {
   state.player.status = "playing";
@@ -57,7 +54,7 @@ const resumeMusic = (state: State) => {
   }, 1000);
 
   currentTimeTracker = timeTracker;
-}
+};
 
 const playMusic = (state: State, song: Music) => {
   const musicSrc = song.fullpath;
@@ -68,11 +65,11 @@ const playMusic = (state: State, song: Music) => {
   //   state.music[i] = song[i];
   // })
 
-  Object.assign(state.music, song)
+  Object.assign(state.music, song);
 
   state.player.status = "playing";
 
-  clearInterval(currentTimeTracker)
+  clearInterval(currentTimeTracker);
 
   const base64src: string = ipcRenderer.sendSync("convert-to-data-url", {
     data: readFileSync(musicSrc),
@@ -83,7 +80,11 @@ const playMusic = (state: State, song: Music) => {
     src: [base64src],
     onplayerror: err => {
       console.log(err);
-      pushNotification(state, { title: "failed to play", body: `error code : ${err}`, type: "error" })
+      pushNotification(state, {
+        title: "failed to play",
+        body: `error code : ${err}`,
+        type: "error"
+      });
     },
     onload: () => {
       state.player.progress = 0;
@@ -110,13 +111,13 @@ const playMusic = (state: State, song: Music) => {
   }, 1000);
 
   currentTimeTracker = timeTracker;
-}
+};
 
 const changeVolume = (state: State, num: number) => {
   state.player.volume = num;
   howlerInstance[0].volume(num / 100);
   localStorage.setItem("quest.player.volume", String(num));
-}
+};
 
 const pushNotification = (state: State, notif: Notification): number => {
   if (!notif.id) notif.id = Math.random();
@@ -127,11 +128,11 @@ const pushNotification = (state: State, notif: Notification): number => {
 
   state.notifications.push(notif);
   return notif.id;
-}
+};
 
 const removeNotification = (state: State, id: number) => {
   remove(state.notifications, i => i.id === id);
-}
+};
 
 const toggleHeart = (state: State, value: boolean | undefined) => {
   if (value) {
@@ -139,7 +140,7 @@ const toggleHeart = (state: State, value: boolean | undefined) => {
   } else {
     state.music.favorite = !state.music.favorite;
   }
-}
+};
 
 export default {
   seek,

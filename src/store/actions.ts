@@ -35,8 +35,10 @@ const alert = (
   c("pushNotification", val);
 };
 
-const toggleHeart = ({ commit: c }: ActionContext<State, State>, val: undefined | boolean) => {
-
+const toggleHeart = (
+  { commit: c }: ActionContext<State, State>,
+  val: undefined | boolean
+) => {
   c("toggleHeart", val);
 };
 

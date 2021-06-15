@@ -1,14 +1,27 @@
 <template>
-  <div id="app" class="h-screen flex flex-col relative overflow-hidden reletive">
+  <div
+    id="app"
+    class="h-screen flex flex-col relative overflow-hidden reletive"
+  >
     <notification />
     <transition name="fade">
       <div
         id="welcome"
         v-if="!documentLoaded"
         class="bg-gray-900 flex justify-center items-center w-screen h-screen fixed inset-0 text-center text-blue-100 z-50 text-7xl"
-      >Quest {{ ['👽','🎈','🍕','🤖','👾','😇'].sort(()=>Math.random() - Math.random())[0] }}</div>
+      >
+        Quest
+        {{
+          ["👽", "🎈", "🍕", "🤖", "👾", "😇"].sort(
+            () => Math.random() - Math.random()
+          )[0]
+        }}
+      </div>
     </transition>
-    <div id="actionbar" class="w-full flex bg-gray-900 text-blue-200 justify-end items-center h-8">
+    <div
+      id="actionbar"
+      class="w-full flex bg-gray-900 text-blue-200 justify-end items-center h-8"
+    >
       <div class="w-full" id="drag-area">.</div>
       <div class="flex">
         <div
@@ -24,16 +37,10 @@
       </div>
     </div>
 
-    <!-- <component :is="layout">
-        <router-view />
-    </component>-->
-
     <router-view v-slot="{ Component }">
-      <!-- <transition name="fadeone" mode="in-out"> -->
       <component :is="layout">
         <component :is="Component" />
       </component>
-      <!-- </transition> -->
     </router-view>
 
     <transition name="v">

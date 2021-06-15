@@ -1,18 +1,26 @@
 <template>
   <div class="flex h-full overflow-hidden relative" id="default-layout">
     <div class="w-full xl:w-3/12 sm:w-4/12 bg-black text-white flex flex-col">
-      <div class="w-full py-5 px-3">
+      <div class="w-full p-5">
         <!-- <img
           src="//s22.q4cdn.com/540910603/files/design/Spotify_Logo_White.png"
           class="inline"
           alt="logo"
         />-->
-        <h1 class="text-5xl text-white">Quest</h1>
+        <h1 class="text-5xl text-gray-400">Quest</h1>
       </div>
       <div class="px-3">
         <ul>
-          <router-link to="/" class="px-2 flex items-center rounded-sm capitalize">
-            <svg class="fill-current" viewBox="0 0 48 48" width="24px" height="48px">
+          <router-link
+            to="/"
+            class="px-2 flex items-center rounded-sm capitalize"
+          >
+            <svg
+              class="fill-current"
+              viewBox="0 0 48 48"
+              width="24px"
+              height="48px"
+            >
               <path
                 d="M39.5,43h-9c-1.381,0-2.5-1.119-2.5-2.5v-9c0-1.105-0.895-2-2-2h-4c-1.105,0-2,0.895-2,2v9c0,1.381-1.119,2.5-2.5,2.5h-9	C7.119,43,6,41.881,6,40.5V21.413c0-2.299,1.054-4.471,2.859-5.893L23.071,4.321c0.545-0.428,1.313-0.428,1.857,0L39.142,15.52	C40.947,16.942,42,19.113,42,21.411V40.5C42,41.881,40.881,43,39.5,43z"
               />

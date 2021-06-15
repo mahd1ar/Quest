@@ -1,8 +1,8 @@
 <template>
   <main class="bg-gray-800 text-center text-red-100 w-full overflow-y-scroll">
-    <div class="bg-gradient-to-t from-pink-500 via-transparent">
+    <div class="gradient-target">
       <div class="text-left px-10 mt-8">
-        <div class="relative" @click="goBack">
+        <div class="relative" @click="$router.go(-1)">
           <svg
             width="100%"
             height="100%"
@@ -15,22 +15,30 @@
           </svg>
         </div>
       </div>
-      <div class="flex pt-24 px-10 pb-5">
+      <div class="flex pt-20 px-10 pb-5">
         <div class="w-52 h-52 shadow-2xl overflow-hidden">
-          <transition name="slide-left">
+          <transition name="slide-right">
             <img
               v-if="musics.length > 0"
-              class="w-full h-full object-cover"
+              class="image-target w-full h-full object-cover"
               :src="musics[0].img"
               alt
             />
           </transition>
         </div>
-        <div class="text-white self-end ml-9 flex-1 w-full text-left">
-          <div class="text-sm uppercase">{{ categoryType }}</div>
-          <div class="text-5xl mt-1">{{ categoryName }}</div>
-          <div class="text-sm mt-3">Mark Francis Carandang</div>
-        </div>
+        <transition name="fade-left">
+          <div
+            v-if="musics.length > 0"
+            :style="{
+              backgroundColor: `rgb(${colors[0]}, ${colors[1]}, ${colors[2]})`
+            }"
+            class="inner-text text-white self-end ml-9 flex-1 w-full text-left"
+          >
+            <div class="text-sm uppercase">{{ categoryType }}</div>
+            <div class="text-5xl mt-1">{{ categoryName }}</div>
+            <!-- <div class="text-sm mt-3">Mark Francis Carandang</div> -->
+          </div>
+        </transition>
       </div>
     </div>
 
@@ -44,7 +52,7 @@
 
       <transition-group name="category-list" tag="div" mode="out-in">
         <div
-          :style="`--count: ${index*130}ms`"
+          :style="`--count: ${index * 200}ms`"
           class="flex text-gray-400 text-sm px-10 py-2 cursor-pointer hover:bg-white hover:bg-opacity-10"
           v-for="(music, index) in musics"
           :key="music.id"
@@ -68,27 +76,27 @@
 </template>
 
 <script lang="ts">
-import { useRoute, useRouter } from "vue-router";
-import { defineComponent, ref, reactive } from "vue";
+import { useRoute } from "vue-router";
+import { defineComponent, ref, reactive, onMounted } from "vue";
 import { mdiChevronLeft } from "@mdi/js";
-import { ipcRenderer } from "electron";
 import { Music } from "@/schema";
 import { emptyAndFillArray } from "@/helpers";
 import { mapActions } from "vuex";
-import { Listener } from "@/components/frontEndUtils";
-import { setTimeout } from "timers";
-const { componentMixin } = require("@/components/mixins");
+import { Listener, getAverageRGB } from "@/components/frontEndUtils";
+const { lifeCycleMixin } = require("@/components/mixins");
+// @ts-ignore
+import anime from "animejs/lib/anime.es.js";
 
 export default defineComponent({
   name: "Home",
-  mixins: [componentMixin],
+  mixins: [lifeCycleMixin],
   setup() {
-    const router = useRouter();
     const route = useRoute();
 
-    const categoryType = ref("");
-    const categoryName = ref("");
-    const musics: Music[] = reactive([]);
+    const categoryType = ref(""),
+      categoryName = ref(""),
+      musics: Music[] = reactive([]),
+      colors: number[] = reactive([0, 0, 0]);
 
     categoryType.value = !Array.isArray(route.params.category)
       ? route.params.category
@@ -112,10 +120,37 @@ export default defineComponent({
         }
       }
     );
+    // linear-gradient(to top, rgb(236, 72, 153), rgba(0, 0, 0, 0), rgba(0, 0, 0, 0))
+    onMounted(() => {
+      setTimeout(() => {
+        const target = getAverageRGB(
+          document.querySelector(".image-target") as HTMLImageElement
+        );
 
-    function goBack() {
-      router.go(-1);
-    }
+        Object.values(target).forEach((i, index) => {
+          colors[index] = i;
+        });
+
+        const handler = document.querySelector(
+          ".gradient-target"
+        ) as HTMLDivElement;
+
+        const rgb = { r: 31, g: 41, b: 55 };
+
+        anime({
+          targets: rgb,
+          r: target.r,
+          g: target.g,
+          b: target.b,
+          round: 1,
+          duration: 2900,
+          easing: "linear",
+          update: function() {
+            handler.style.background = `linear-gradient(to top, rgb(${rgb.r}, ${rgb.g}, ${rgb.b}), rgba(0, 0, 0, 0), rgba(0, 0, 0, 0))`;
+          }
+        });
+      }, 2300);
+    });
     function getListeners() {
       return listeners;
     }
@@ -123,17 +158,17 @@ export default defineComponent({
     return {
       ...mapActions(["playMusic"]),
       getListeners,
+      colors,
       musics,
       categoryType,
       categoryName,
-      goBack,
       icons: { back: mdiChevronLeft }
     };
   }
 });
 </script>
 
-<style lang="scss" scoped >
+<style lang="scss" scoped>
 .category-list {
   // &-item {
   //   transition-delay: var(--count);
@@ -152,20 +187,37 @@ export default defineComponent({
     // transform: translateY(100%);
   }
 }
-.slide-left {
-  // &-item {
-  //   transition-delay: var(--count);
-  // }
-
+.slide-right {
   &-enter-active,
   &-leave-active {
     // transition-delay: var(--count);
-    transition: all 1s cubic-bezier(0, 0, 0.1, 0.99);
+    transition: all 1500ms cubic-bezier(0, 0, 0.1, 0.99);
   }
 
   &-enter-from,
   &-leave-to {
     margin-left: 100%;
   }
+}
+.fade-left {
+  &-enter-active,
+  &-leave-active {
+    transition: all 1s ease-out; //cubic-bezier(0, 0, 0.1, 0.99);
+  }
+
+  &-enter-from,
+  &-leave-to {
+    transform: translateX(-25px);
+    opacity: 0;
+  }
+}
+
+.inner-text {
+  position: relative;
+  -webkit-background-clip: text;
+  color: transparent;
+  // -webkit-filter: invert() sepia();
+  filter: #{"invert()"} sepia();
+  transition: all 1s ease-out;
 }
 </style>
