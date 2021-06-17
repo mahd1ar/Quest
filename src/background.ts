@@ -1,20 +1,18 @@
 "use strict";
 
 import chokidar from "chokidar";
-import { Music, Shadow } from "@/schema";
+import { Music } from "@/schema";
 import dataurl from "dataurl";
 import { app, BrowserWindow, dialog, ipcMain, protocol } from "electron";
 import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
 import fs from "fs";
-import { glob } from "glob";
 import { flattenDeep } from "lodash";
 import NodeID3 from "node-id3";
 import path from "path";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import { RecentlyAddedBuilder, Shadows, Category, Favorites } from "./database";
-import { areDiffrent, timeout } from "./helpers";
+import { areDiffrent } from "./helpers";
 import { UNKNOWN_ALBUM, UNKNOWN_ARTIST } from "./providers/constants";
-import { route } from "./providers/routerWrapper";
 import { MainQueue, Task } from "./providers/utilities";
 import { seekMusic } from "./providers/MusicScanner";
 import { initRoutes } from "./endpoints";
@@ -158,11 +156,12 @@ function startBuildingDatabase(absPath: string[]) {
 
   const recentlyAdded = new RecentlyAddedBuilder();
 
+  shadow.dump();
   albums.dump();
   artist.dump();
-  shadow.dump();
   folder.dump();
   recentlyAdded.dump();
+
   shadow.createDirectory();
 
   const musicObjects = seekMusic(absPath);
@@ -183,12 +182,12 @@ function startBuildingDatabase(absPath: string[]) {
         favorite: false
       };
 
-      favorite.write(music);
+      favorite.write(music, musicObjects.length === inx + 1);
       albums.write(music, musicObjects.length === inx + 1);
       artist.write(music, musicObjects.length === inx + 1);
       folder.write(music, musicObjects.length === inx + 1);
-
       shadow.write(music);
+
       recentlyAdded.write(music, musicObjects.length === inx + 1);
 
       task.done();
@@ -210,10 +209,10 @@ function compair(entryPints: string[]): boolean {
   }
 
   // compaire contents
-  let c = folders.ls().map(folderName => {
+  const c = folders.ls().map(folderName => {
     const f = new Category("library", folderName);
 
-    let musicsids = f.get().map(id => f.getShadow(id).fullpath);
+    const musicsids = f.get().map(id => f.getShadow(id).fullpath);
 
     return entryPints.map(ep => {
       const musicList = seekMusic(ep).map(i => i.fullpath);
@@ -293,6 +292,7 @@ function start(libraries: string[]) {
 }
 
 ipcMain.on("quest-start", (_, args: string[]) => {
+  console.log("starts with ", args);
   start(args);
 });
 

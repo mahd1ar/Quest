@@ -7,20 +7,17 @@ function getAverageRGB(imgEl: HTMLImageElement) {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext && canvas.getContext("2d");
   let data;
-  let width;
-  let height;
   let i = -4;
-  let length;
   const rgb = { r: 0, g: 0, b: 0 };
   let count = 0;
 
   if (!context) {
     return defaultRGB;
   }
-
-  height = canvas.height =
-    imgEl.naturalHeight || imgEl.offsetHeight || imgEl.height;
-  width = canvas.width = imgEl.naturalWidth || imgEl.offsetWidth || imgEl.width;
+  const height = (canvas.height =
+    imgEl.naturalHeight || imgEl.offsetHeight || imgEl.height);
+  const width = (canvas.width =
+    imgEl.naturalWidth || imgEl.offsetWidth || imgEl.width);
 
   context.drawImage(imgEl, 0, 0);
 
@@ -31,7 +28,7 @@ function getAverageRGB(imgEl: HTMLImageElement) {
     return defaultRGB;
   }
 
-  length = data.data.length;
+  const length = data.data.length;
 
   while ((i += blockSize * 4) < length) {
     ++count;

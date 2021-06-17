@@ -98,8 +98,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive, watch, Ref } from "vue";
-import { Message, Music, Notification } from "@/schema";
+import { defineComponent, ref, reactive, watch } from "vue";
+import { Music, Notification } from "@/schema";
 import { useStore, mapActions } from "vuex";
 import { Listener } from "@/components/frontEndUtils.ts";
 import { emptyAndFillArray } from "../helpers";
@@ -108,7 +108,6 @@ import { emptyAndFillArray } from "../helpers";
 import anime from "animejs/lib/anime.es.js";
 import { useRouter } from "vue-router";
 const { lifeCycleMixin } = require("@/components/mixins");
-type RGB = [number, number, number];
 
 export default defineComponent({
   name: "Home",

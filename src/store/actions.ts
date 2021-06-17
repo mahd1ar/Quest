@@ -1,20 +1,29 @@
 import { ActionContext } from "vuex";
 import { State, Notification } from "../schema";
 
-let setlibs = ({ commit: c }: ActionContext<State, State>, vals: string[]) => {
+const setlibs = (
+  { commit: c }: ActionContext<State, State>,
+  vals: string[]
+) => {
   c("setLibs", vals);
 };
 
-let addlib = ({ commit: c }: ActionContext<State, State>, val: string) => {
+const addlib = ({ commit: c }: ActionContext<State, State>, val: string) => {
   c("addLib", val);
   return "zero";
 };
 
-let resumeMusic = ({ commit: c }: ActionContext<State, State>, val: string) => {
+const resumeMusic = (
+  { commit: c }: ActionContext<State, State>,
+  val: string
+) => {
   c("resumeMusic", val);
 };
 
-let pauseMusic = ({ commit: c }: ActionContext<State, State>, val: string) => {
+const pauseMusic = (
+  { commit: c }: ActionContext<State, State>,
+  val: string
+) => {
   c("pauseMusic", val);
 };
 
@@ -42,6 +51,13 @@ const toggleHeart = (
   c("toggleHeart", val);
 };
 
+const changeLibraries = (
+  { commit: c }: ActionContext<State, State>,
+  val: string[]
+) => {
+  c("changeLibraries", val);
+};
+
 export default {
   resumeMusic,
   pauseMusic,
@@ -50,5 +66,6 @@ export default {
   playMusic,
   seek,
   alert,
-  toggleHeart
+  toggleHeart,
+  changeLibraries
 };

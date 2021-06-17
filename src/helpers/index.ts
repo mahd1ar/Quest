@@ -49,7 +49,7 @@ export function areDiffrent(a1: string[], a2: string[]) {
 }
 
 export function normalPath(args: string[]) {
-  let res = path.normalize(args.join(path.sep));
+  const res = path.normalize(args.join(path.sep));
 
   if (res[res.length - 1] == "/") res.substring(0, res.length - 1);
 

@@ -16,6 +16,7 @@ import dataurl from "dataurl";
 import fs from "fs";
 import NodeID3 from "node-id3";
 import path from "path";
+import { emptyAndFillArray } from "@/helpers";
 
 // function getImageTag({ image }: NodeID3.Tags): string {
 //   let img: string;
@@ -32,6 +33,7 @@ import path from "path";
 
 class Index implements IndexBuilder {
   public basePath: string;
+  protected m_buffer: string[] | object | object[] | undefined;
   constructor(
     public correspondingName: string,
     private location?: string | undefined,
@@ -97,12 +99,31 @@ class Index implements IndexBuilder {
         .toString()
     );
   }
+  // heey
   readFileSync(): string[] | object {
     console.log("trying to find and read", this.correspondingName);
-    let filecontent = fs.readFileSync(this.fullpath).toString();
+    const filecontent = fs.readFileSync(this.fullpath).toString();
     if (this.fileExt === "json") return JSON.parse(filecontent);
     else return filecontent.split("\n").filter(Boolean);
   }
+  // dont use this
+  // writeFileSync(): boolean {
+  //   if (!this.m_buffer) return false;
+
+  //   try {
+  //     fs.writeFileSync(
+  //       this.fullpath,
+  //       this.fileExt === "json"
+  //         ? JSON.stringify(this.m_buffer, null, 2)
+  //         : this.m_buffer.join("\n")
+  //     );
+  //     return true;
+  //   } catch (error) {
+  //     console.log("error in index => ");
+  //     console.log(error);
+  //     return false;
+  //   }
+  // }
 }
 
 class Category extends Index implements CategoryBuilder {
@@ -117,7 +138,7 @@ class Category extends Index implements CategoryBuilder {
     //   this.categoryName = music[this.correspondingName];
 
     // @ts-ignore
-    let catname = music[this.correspondingName]; // like random access mem
+    const catname = music[this.correspondingName]; // like random access mem
 
     if (this.buffer[<string>catname]) {
       this.buffer[<string>catname].push(music.id);
@@ -189,7 +210,7 @@ class Shadows {
   update(id: string, attributes: object) {
     const x = this.find(id);
     if (x) {
-      let res = Object.assign({}, x, attributes);
+      const res = Object.assign({}, x, attributes);
       fs.writeFileSync(
         path.join(this.correspondingLocation, id + ".json"),
         JSON.stringify(res, null, 2)
@@ -274,6 +295,8 @@ class RecentlyAddedBuilder extends Index implements FileBuilder {
 
 class Favorites extends Index implements FileBuilder {
   private favorites: { id: string; fullpath: string }[] = [];
+  private tmpFavorites: { id: string; fullpath: string }[] = [];
+
   constructor() {
     super("Favorites", undefined, "json");
     if (!this.existSync()) this.favorites = [];
@@ -285,12 +308,22 @@ class Favorites extends Index implements FileBuilder {
       return this.getMusic(i);
     });
   }
-  write(music: Music, ...args: any[]): void {
+  write(music: Music, isLastElement: boolean): void {
     const result = remove(this.favorites, i => {
       return i.fullpath === music.fullpath;
     });
 
-    music.favorite = result.length > 0;
+    if (result.length > 0) {
+      music.favorite = true;
+      this.tmpFavorites.push({ id: music.id, fullpath: music.fullpath });
+    }
+
+    if (isLastElement) {
+      this.dump();
+      emptyAndFillArray(this.favorites, this.tmpFavorites);
+      this.tmpFavorites.length = 0;
+      fs.writeFileSync(this.fullpath, JSON.stringify(this.favorites, null, 2));
+    }
   }
 
   record(id: string, fullpath: string, value: boolean) {
@@ -298,7 +331,7 @@ class Favorites extends Index implements FileBuilder {
       return i.fullpath === fullpath || i.id === id;
     });
 
-    let shd = new Shadows();
+    const shd = new Shadows();
     shd.update(id, { favorite: value });
 
     if (value) this.favorites.push({ id, fullpath });

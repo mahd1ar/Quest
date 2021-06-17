@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from "uuid";
 export function seekMusic(libs: Array<string> | string): Shadow[] {
   if (typeof libs === "string") libs = [libs];
 
-  let res = libs.map(lib_path => {
+  const res = libs.map(lib_path => {
     const library = lib_path;
     lib_path = path.normalize(lib_path + "/**/*.mp3");
 

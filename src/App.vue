@@ -12,7 +12,7 @@
       >
         Quest
         {{
-          ["👽", "🎈", "🍕", "🤖", "👾", "😇"].sort(
+          ["👽", "⚔", "🍕", "🤖", "👾", "😇"].sort(
             () => Math.random() - Math.random()
           )[0]
         }}
@@ -22,7 +22,7 @@
       id="actionbar"
       class="w-full flex bg-gray-900 text-blue-200 justify-end items-center h-8"
     >
-      <div class="w-full" id="drag-area">.</div>
+      <div class="w-full text-gray-900" id="drag-area">.</div>
       <div class="flex">
         <div
           v-for="(path, name) in icons"
@@ -50,7 +50,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, computed, ref } from "vue";
+import { defineComponent, onMounted, computed, ref, watch } from "vue";
 import { ipcRenderer } from "electron";
 import { Message, Notification as Notif } from "@/schema";
 import { useRoute } from "vue-router";
@@ -78,11 +78,12 @@ export default defineComponent({
     });
 
     onMounted(() => {
-      const libraries = localStorage.getItem("quest-user-libraries");
-      // TODO: test without it
-      if (libraries !== null) {
-        ipcRenderer.send("quest-start", JSON.parse(libraries));
-      }
+      ipcRenderer.send("quest-start", [...store.state.libraries]);
+
+      watch(store.state.libraries, (val: string) => {
+        console.log("sending...", [...val]);
+        ipcRenderer.send("quest-start", [...val]);
+      });
 
       ipcRenderer.on("quest-notify", (_, params: Message) => {
         const msg: Message = {

@@ -1,6 +1,6 @@
 <template>
   <main class="bg-gray-800 text-center w-full overflow-y-scroll">
-    <section class="text-gray-300 body-font relative">
+    <section class="text-gray-300 body-font relative mt-24">
       <div class="container px-5 mx-auto">
         <div class="flex flex-col text-center w-full mb-12">
           <h1
@@ -9,15 +9,14 @@
             settings
           </h1>
           <p class="lg:w-2/3 mx-auto leading-relaxed text-base">
-            Whatever cardigan tote bag tumblr hexagon brooklyn asymmetrical
-            gentrify.
+            Make a difference
           </p>
         </div>
         <div class="lg:w-1/2 md:w-2/3 mx-auto text-gray-300">
           <div class="flex flex-wrap">
             <div class="p-2 w-full">
               <div class="relative text-left">
-                <label class="leading-7 block text-lg my-1">Libraries:</label>
+                <label class="leading-7 block text-lg">Libraries:</label>
                 <ul class="p-2">
                   <li
                     v-for="(lib, index) in libraries"
@@ -146,7 +145,6 @@ import { mdiClose } from "@mdi/js";
 import { Listener } from "@/components/frontEndUtils";
 import { remove } from "lodash";
 import { useStore } from "vuex";
-import { Notification } from "@/schema";
 
 const { lifeCycleMixin } = require("@/components/mixins");
 
@@ -175,12 +173,7 @@ export default defineComponent({
       listener.emit();
     }
     function save() {
-      localStorage.setItem("quest-user-libraries", JSON.stringify(libraries));
-      const message: Notification = {
-        title: "successfuly added",
-        type: "success"
-      };
-      store.dispatch("alert", message);
+      store.dispatch("changeLibraries", libraries);
     }
 
     function getListeners() {

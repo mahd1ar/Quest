@@ -5,12 +5,12 @@ import { CategoryTypes } from "@/schema";
 
 export function initRoutes(questQueue: MainQueue) {
   route("recently_played.get", questQueue, () => {
-    let recently = new RecentlyAddedBuilder();
+    const recently = new RecentlyAddedBuilder();
     return recently.get().map(i => recently.getMusic(i));
   });
 
   route("albums", questQueue, () => {
-    let albums = new Category("album");
+    const albums = new Category("album");
 
     return albums.ls().map(async name => {
       const image = (await albums.getMusic(albums.get(name)[0])).img;
@@ -25,7 +25,7 @@ export function initRoutes(questQueue: MainQueue) {
     const categoryName: string = params.payload!.categoryName;
 
     console.log({ categoryName }, { categoryType });
-    let cat = new Category(categoryType);
+    const cat = new Category(categoryType);
 
     return cat.get(categoryName).map(i => cat.getMusic(i));
   });

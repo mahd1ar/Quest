@@ -1,8 +1,9 @@
 import { State, Music, Notification } from "../schema";
 import { ipcRenderer } from "electron";
 import { readFileSync } from "fs";
-import { remove } from "lodash";
+import { remove, difference } from "lodash";
 import { Howl, Howler } from "howler";
+import { emptyAndFillArray } from "@/helpers";
 
 const howlerInstance: Howl[] = [];
 let currentTimeTracker: number;
@@ -142,6 +143,32 @@ const toggleHeart = (state: State, value: boolean | undefined) => {
   }
 };
 
+const changeLibraries = (state: State, values: string[]) => {
+  const rightDiff = difference(state.libraries, values);
+  const leftDiff = difference(values, state.libraries);
+
+  if (rightDiff.length != 0 || leftDiff.length != 0) {
+    if (rightDiff.length !== 0) {
+      pushNotification(state, {
+        title: "library deleted",
+        type: "error",
+        body: rightDiff.join("\n") + " removed"
+      } as Notification);
+    }
+
+    if (leftDiff.length !== 0) {
+      pushNotification(state, {
+        title: "new library added",
+        type: "success",
+        body: leftDiff.join("\n") + " added"
+      } as Notification);
+    }
+
+    emptyAndFillArray(state.libraries, values);
+    localStorage.setItem("quest-user-libraries", JSON.stringify(values));
+  }
+};
+
 export default {
   seek,
   pauseMusic,
@@ -150,5 +177,6 @@ export default {
   changeVolume,
   pushNotification,
   removeNotification,
-  toggleHeart
+  toggleHeart,
+  changeLibraries
 };

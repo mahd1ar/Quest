@@ -9,8 +9,10 @@ const volume = localStorage.getItem("quest.player.volume")
   ? Number(localStorage.getItem("quest.player.volume"))
   : 50;
 // const progress =  localStorage.getItem("quest.player.progress") ? Number(localStorage.getItem("quest.player.progress")): 0;
+const libraries: string[] = localStorage.getItem("quest-user-libraries")
+  ? JSON.parse(localStorage.getItem("quest-user-libraries")!)
+  : [];
 
-// Create a new store instance.
 const store = createStore({
   state() {
     const state: Schema.State = {
@@ -36,7 +38,8 @@ const store = createStore({
         title: "",
         img: "",
         favorite: false
-      }
+      },
+      libraries
     };
     return state;
   },

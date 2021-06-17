@@ -14,4 +14,5 @@ export default interface State {
     currentTime: number;
   };
   music: Music;
+  libraries: string[];
 }

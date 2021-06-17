@@ -34,7 +34,7 @@
             {{ item.title }}
             <div v-if="item.body" class="text-sm font-base">
               {{ item.body }}
-              <a href="/#">here</a>
+              <a href="/#"></a>
             </div>
           </div>
         </div>
