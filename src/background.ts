@@ -43,7 +43,7 @@ async function createWindow() {
     }
   });
 
-  win.webContents.on("did-finish-load", function() {
+  win.webContents.on("did-finish-load", function () {
     win.show();
   });
 
@@ -146,7 +146,7 @@ ipcMain.on("minimize-appication", () => {
 });
 
 function startBuildingDatabase(absPath: string[]) {
-  // <NEW>
+
   console.log("START BUILDING DATABASE");
   const albums = new Category("album");
   const artist = new Category("artist");
@@ -209,16 +209,14 @@ function compair(entryPints: string[]): boolean {
   }
 
   // compaire contents
-  const c = folders.ls().map(folderName => {
-    const f = new Category("library", folderName);
+  const c = folders.ls().map(libFolderName => {
+    const f = new Category("library", libFolderName);
 
     const musicsids = f.get().map(id => f.getShadow(id).fullpath);
 
-    return entryPints.map(ep => {
-      const musicList = seekMusic(ep).map(i => i.fullpath);
+    const musicList = seekMusic(libFolderName).map(i => i.fullpath);
 
-      return areDiffrent(musicList, musicsids);
-    });
+    return areDiffrent(musicList, musicsids);
   });
 
   return flattenDeep(c).some(Boolean);

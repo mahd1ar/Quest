@@ -99,8 +99,8 @@
 
 <script lang="ts">
 import { defineComponent, ref, reactive, watch } from "vue";
-import { Music, Notification } from "@/schema";
-import { useStore, mapActions } from "vuex";
+import { Music } from "@/schema";
+import { mapActions } from "vuex";
 import { Listener } from "@/components/frontEndUtils.ts";
 import { emptyAndFillArray } from "../helpers";
 
@@ -114,42 +114,35 @@ export default defineComponent({
   mixins: [lifeCycleMixin],
   setup() {
     const router = useRouter();
-    const store = useStore();
 
     const recentlyAdded: Music[] = reactive([]),
       albums: { image: string; name: string }[] = reactive([]),
       albumsCovers = ref([]);
 
-    const questAlert = (params: Notification) => {
-      store.dispatch("alert", params);
-    };
-
     const listeners = new Listener();
-
-    listeners.register("DB-Changed", () => {
-      questAlert({ title: "re scanning library", type: "refresh" });
-      // ipcRenderer.removeAllListeners("albums.res");
-      // ipcRenderer.send("albums.req");
-      listeners.get().forEach(({ name }) => {
-        listeners.emit(name);
-      });
-    });
-
+    // params.payload!.categoryType
     listeners.register(
-      "albums",
+      "album",
+      "category/ls",
       (_: any, payload: { image: string; name: string }[]) => {
         emptyAndFillArray(albums, payload);
-      }
+      },
+      true,
+      { payload: { categoryType: "album" } }
     );
 
-    listeners.register("favorite/all", (_: any, payload: any) => {
+    listeners.register("favorite", "favorite/all", (_: any, payload: any) => {
       console.log(payload);
     });
 
-    listeners.register("recently_played.get", (_: any, payload: Music[]) => {
-      console.log("recently played");
-      emptyAndFillArray(recentlyAdded, payload.splice(0, 4));
-    });
+    listeners.register(
+      "recently_played",
+      "recently_played.get",
+      (_: any, payload: Music[]) => {
+        console.log("recently played");
+        emptyAndFillArray(recentlyAdded, payload.splice(0, 4));
+      }
+    );
 
     function getListeners(): Listener {
       return listeners;

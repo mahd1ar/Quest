@@ -161,6 +161,7 @@ export default defineComponent({
 
     const listener = new Listener();
     listener.register(
+      "add new library",
       "add-new-lib",
       (_: any, params: string) => {
         remove(libraries, i => i === params);

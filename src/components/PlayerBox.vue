@@ -89,13 +89,13 @@
         </button>
       </div>
       <div class="h-2/5 w-full flex justify-between items-center">
-        <span class="text-sm text-gray-200 w-12 text-left">
-          {{ currentTime }}
-        </span>
+        <span class="text-sm text-gray-200 w-12 text-left">{{
+          currentTime
+        }}</span>
         <input v-model="seek" type="range" class="w-full h-1 mx-2" />
-        <span class="text-sm text-gray-200 w-12 text-right">
-          {{ duration }}
-        </span>
+        <span class="text-sm text-gray-200 w-12 text-right">{{
+          duration
+        }}</span>
       </div>
     </div>
     <div
@@ -177,6 +177,7 @@ export default defineComponent({
     const listeners = new Listener();
 
     listeners.register(
+      "favorite",
       "favorite/set",
       (_: any, res: boolean) => {
         if (res) store.dispatch("toggleHeart");

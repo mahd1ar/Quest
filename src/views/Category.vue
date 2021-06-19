@@ -107,9 +107,10 @@ export default defineComponent({
       : route.params.tag[0];
     const listeners = new Listener();
     listeners.register(
+      "getMusicsOfCategory",
       "category",
       (_: any, musicsFromServer: Music[]) => {
-        console.log(musicsFromServer);
+        console.log("getMusicsOfCategory", musicsFromServer);
         emptyAndFillArray(musics, musicsFromServer);
       },
       true,

@@ -31,13 +31,19 @@ import { emptyAndFillArray } from "@/helpers";
 //   return img;
 // }
 
-class Index implements IndexBuilder {
+// string[] | object | object[]
+// function schemaIsNotStringArray<T>(index: Index<T>): T is string[] {
+//   return index.fileExt !== "json"
+// }
+
+class Index<T> implements IndexBuilder {
   public basePath: string;
-  protected m_buffer: string[] | object | object[] | undefined;
+
   constructor(
     public correspondingName: string,
+    protected m_buffer: T,
     private location?: string | undefined,
-    private fileExt?: "csv" | "json" | undefined
+    public fileExt?: "csv" | "json" | undefined
   ) {
     this.basePath = path.join(global.questUserData, "/database");
   }
@@ -45,6 +51,7 @@ class Index implements IndexBuilder {
   existSync(): boolean {
     return fs.existsSync(this.fullpath);
   }
+
   dump(): void {
     console.log("dumping");
     if (this.existSync()) {
@@ -100,56 +107,57 @@ class Index implements IndexBuilder {
     );
   }
   // heey
-  readFileSync(): string[] | object {
-    console.log("trying to find and read", this.correspondingName);
+  readFileSync(): T {
     const filecontent = fs.readFileSync(this.fullpath).toString();
-    if (this.fileExt === "json") return JSON.parse(filecontent);
-    else return filecontent.split("\n").filter(Boolean);
+    if (this.fileExt !== "json") {
+      return <any>filecontent.split("\n").filter(Boolean);
+    } else {
+      return JSON.parse(filecontent);
+    }
   }
   // dont use this
-  // writeFileSync(): boolean {
-  //   if (!this.m_buffer) return false;
+  writeBufferSync(): boolean {
+    if (!this.m_buffer) return false;
 
-  //   try {
-  //     fs.writeFileSync(
-  //       this.fullpath,
-  //       this.fileExt === "json"
-  //         ? JSON.stringify(this.m_buffer, null, 2)
-  //         : this.m_buffer.join("\n")
-  //     );
-  //     return true;
-  //   } catch (error) {
-  //     console.log("error in index => ");
-  //     console.log(error);
-  //     return false;
-  //   }
-  // }
+    try {
+      fs.writeFileSync(
+        this.fullpath,
+        Array.isArray(this.m_buffer) && this.fileExt !== "json"
+          ? this.m_buffer.join("\n")
+          : JSON.stringify(this.m_buffer, null, 2)
+      );
+      return true;
+    } catch (error) {
+      console.log("error in index => ");
+      console.log(error);
+      return false;
+    }
+  }
 }
 
-class Category extends Index implements CategoryBuilder {
+class Category extends Index<{ [key: string]: string[] }>
+  implements CategoryBuilder {
   private categoryName?: string;
-  private buffer = {} as { [key: string]: string[] };
+  // private buffer = {} as { [key: string]: string[] };
+
   constructor(correspondingName: CategoryTypes, categoryName?: string) {
-    super(correspondingName, undefined, "json");
+    super(correspondingName, {}, undefined, "json");
+
     if (categoryName) this.categoryName = categoryName;
   }
   write(music: Music, isLastElement: boolean) {
     // if (!this.categoryName) //link random access mem
     //   this.categoryName = music[this.correspondingName];
 
-    // @ts-ignore
-    const catname = music[this.correspondingName]; // like random access mem
+    const catname = music[<CategoryTypes>this.correspondingName]; // like random access mem => ,usic[randomAccessMemory]
 
-    if (this.buffer[<string>catname]) {
-      this.buffer[<string>catname].push(music.id);
+    if (this.m_buffer[catname]) {
+      this.m_buffer[catname].push(music.id);
     } else {
-      this.buffer[<string>catname] = [music.id];
+      this.m_buffer[catname] = [music.id];
     }
     if (isLastElement) {
-      console.log("VvvvvvvvvvvvvvvvvvvV");
-      console.log(this.buffer);
-      console.log("^^^^^^^^^^^^^^^");
-      fs.writeFileSync(this.fullpath, JSON.stringify(this.buffer, null, 2));
+      this.writeBufferSync();
     }
   }
 
@@ -263,11 +271,11 @@ class Shadows {
   }
 }
 
-class RecentlyAddedBuilder extends Index implements FileBuilder {
+class RecentlyAddedBuilder extends Index<string[]> implements FileBuilder {
   private recentlyAddedList: Music[] = [];
   private threshold = 20;
   constructor() {
-    super("RecentlyAddedBuilder");
+    super("RecentlyAddedBuilder", []);
   }
 
   read(): Promise<Music>[] {
@@ -284,67 +292,71 @@ class RecentlyAddedBuilder extends Index implements FileBuilder {
 
     if (isLastElement) {
       this.recentlyAddedList.sort((a, b) => b.modified - a.modified);
+      this.recentlyAddedList
+        .map(i => i.id)
+        .forEach(i => {
+          this.m_buffer?.push(i);
+        });
 
-      fs.writeFileSync(
-        this.fullpath,
-        this.recentlyAddedList.map(i => i.id).join("\n")
-      );
+      this.recentlyAddedList.length = 0;
+
+      this.writeBufferSync();
     }
   }
 }
 
-class Favorites extends Index implements FileBuilder {
+class Favorites extends Index<{ id: string; fullpath: string }[]>
+  implements FileBuilder {
   private favorites: { id: string; fullpath: string }[] = [];
-  private tmpFavorites: { id: string; fullpath: string }[] = [];
 
   constructor() {
-    super("Favorites", undefined, "json");
-    if (!this.existSync()) this.favorites = [];
-    else
-      this.favorites = <{ id: string; fullpath: string }[]>this.readFileSync();
+    super("Favorites", [], undefined, "json");
+    this.m_buffer = !this.existSync() ? [] : this.readFileSync();
   }
+
   read(): Promise<Music>[] {
     return this.getAll().map(i => {
       return this.getMusic(i);
     });
   }
+
   write(music: Music, isLastElement: boolean): void {
-    const result = remove(this.favorites, i => {
+    const result = remove(this.m_buffer, i => {
       return i.fullpath === music.fullpath;
     });
 
     if (result.length > 0) {
       music.favorite = true;
-      this.tmpFavorites.push({ id: music.id, fullpath: music.fullpath });
+      this.favorites.push({ id: music.id, fullpath: music.fullpath });
     }
 
     if (isLastElement) {
       this.dump();
-      emptyAndFillArray(this.favorites, this.tmpFavorites);
-      this.tmpFavorites.length = 0;
-      fs.writeFileSync(this.fullpath, JSON.stringify(this.favorites, null, 2));
+      emptyAndFillArray(this.m_buffer, this.favorites);
+      this.favorites.length = 0;
+      this.writeBufferSync();
     }
   }
 
   record(id: string, fullpath: string, value: boolean) {
-    remove(this.favorites, i => {
+    remove(this.m_buffer, i => {
       return i.fullpath === fullpath || i.id === id;
     });
 
     const shd = new Shadows();
     shd.update(id, { favorite: value });
 
-    if (value) this.favorites.push({ id, fullpath });
+    if (value) this.m_buffer.push({ id, fullpath });
 
-    fs.writeFileSync(this.fullpath, JSON.stringify(this.favorites, null, 2));
+    fs.writeFileSync(this.fullpath, JSON.stringify(this.m_buffer, null, 2));
   }
 
   get(id: string): boolean {
-    return this.favorites.some(i => i.id === id);
+    return this.m_buffer.some(i => i.id === id);
   }
 
   getAll(): string[] {
-    return this.favorites.map(i => i.id);
+    return this.m_buffer.map(i => i.id);
   }
 }
 

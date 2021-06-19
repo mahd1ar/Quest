@@ -45,6 +45,11 @@ export class Logger {
 }
 
 export function areDiffrent(a1: string[], a2: string[]) {
+  // console.log("***********")
+  // const x = difference(a1, a2)
+  // const y = difference(a2, a1)
+  // console.log(x, y)
+  // console.log("***********")
   return !(difference(a1, a2).length === 0 && difference(a2, a1).length === 0);
 }
 

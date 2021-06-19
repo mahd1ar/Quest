@@ -48,20 +48,22 @@ function getAverageRGB(imgEl: HTMLImageElement) {
 class Listener {
   private elements: {
     name: string;
+    endpoint: string,
     action: Function;
     emitOnLoad: boolean;
     payload?: object;
   }[] = [];
 
-  constructor() {}
+  constructor() { }
 
   register(
     name: string,
+    endpoint: string,
     action: Function,
     emitOnLoad: boolean = true,
     payload?: object
   ) {
-    this.elements.push({ name, action, emitOnLoad, payload });
+    this.elements.push({ name, endpoint, action, emitOnLoad, payload });
     return this;
   }
 
@@ -81,17 +83,17 @@ class Listener {
 
   unbindAll() {
     this.elements.forEach(element => {
-      ipcRenderer.removeAllListeners(element.name + ".res");
+      ipcRenderer.removeAllListeners(element.endpoint + ".res");
     });
   }
 
   private sendAsync(index: number) {
     if (!this.elements[index].payload)
-      ipcRenderer.send(this.elements[index].name + ".req");
+      ipcRenderer.send(this.elements[index].endpoint + ".req");
     else {
       console.log(this.elements[index].payload);
       ipcRenderer.send(
-        this.elements[index].name + ".req",
+        this.elements[index].endpoint + ".req",
         this.elements[index].payload
       );
     }

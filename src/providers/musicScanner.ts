@@ -5,7 +5,9 @@ import { flattenDeep } from "lodash";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 
-export function seekMusic(libs: Array<string> | string): Shadow[] {
+export function seekMusic(
+  libs: Array<string> | string /* getShadow = true */
+): Shadow[] {
   if (typeof libs === "string") libs = [libs];
 
   const res = libs.map(lib_path => {
@@ -14,6 +16,9 @@ export function seekMusic(libs: Array<string> | string): Shadow[] {
 
     const musicList = glob.sync(lib_path, { nodir: true });
 
+    // if (!getShadow)
+    //   return musicList.map(fullpath => path.join(fullpath))
+    // else
     return musicList.map(fullpath => {
       fullpath = path.join(fullpath);
       const id = uuidv4();

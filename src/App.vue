@@ -198,27 +198,4 @@ export default defineComponent({
     position: absolute;
   }
 }
-
-.fadeone {
-  &-enter-from,
-  &-leave-to {
-    transition: all 0.8s ease;
-    opacity: 0;
-    transform: translateY(150%);
-    transform-origin: center bottom;
-  }
-
-  &-leave-from,
-  &-enter-to {
-    transition: all 0.8s ease;
-    transform: translateY(0);
-    opacity: 1;
-  }
-
-  &-enter-active,
-  &-leave-active {
-    inset: 0;
-    position: absolute;
-  }
-}
 </style>
