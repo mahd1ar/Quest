@@ -82,6 +82,39 @@
       </div>
     </div>
 
+    <!-- Artists -->
+    <div class="text-left p-8">
+      <h2
+        class="text-3xl capitalize my-6 px-3"
+        v-show="artists.length > 0"
+        v-intersection:once="getArtistsImages"
+      >
+        Artists
+      </h2>
+      <div class="flex flex-wrap">
+        <div v-for="(artist, index) in artists" :key="index" class="p-3">
+          <span
+            class="bg-white bg-opacity-5 hover:bg-opacity-10 cursor-pointer flex flex-col rounded-sm w-40"
+          >
+            <div class="rounded-md sm:m-2 lg:m-4 overflow-hidden relative h-32">
+              <img
+                :class="`artist-cover-${index}`"
+                class="w-full rounded-full h-full object-cover relative"
+                :src="artist.image"
+              />
+            </div>
+            <span class="capitalize px-2 font-bold text-blue-100">
+              <h3
+                class="text-lg text-blue-50 whitespace-nowrap overflow-ellipsis w-full overflow-x-hidden pb-8 text-center"
+              >
+                {{ artist.name }}
+              </h3>
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+
     <!-- empty screen! -->
     <div
       v-show="albums.length === 0"
@@ -107,7 +140,35 @@ import { emptyAndFillArray } from "../helpers";
 // @ts-ignore
 import anime from "animejs/lib/anime.es.js";
 import { useRouter } from "vue-router";
+import { UNKNOWN_ARTIST } from "@/providers/constants";
 const { lifeCycleMixin } = require("@/components/mixins");
+
+import { cloneDeep } from "lodash";
+
+const dripAnimation = (
+  targetIndex: number,
+  reverseDirection: boolean,
+  onComplete?: Function
+) => {
+  anime({
+    targets: `.artist-cover-${targetIndex}`,
+    easing: "easeInOutSine",
+    // reverse: reverseDirection,
+    keyframes: reverseDirection
+      ? [
+          { clipPath: "circle(0% at 50% 50%)" },
+          { clipPath: "circle(100% at 50% 50%)" }
+        ]
+      : [
+          { clipPath: "circle(100% at 50% 50%)" },
+          { clipPath: "circle(0% at 50% 50%)" }
+        ],
+    duration: 1000,
+    complete: () => {
+      onComplete && onComplete();
+    }
+  });
+};
 
 export default defineComponent({
   name: "Home",
@@ -117,29 +178,63 @@ export default defineComponent({
 
     const recentlyAdded: Music[] = reactive([]),
       albums: { image: string; name: string }[] = reactive([]),
-      albumsCovers = ref([]);
+      albumsCovers = ref([]),
+      artists: { image: string; name: string }[] = reactive([]);
 
     const listeners = new Listener();
-    // params.payload!.categoryType
+
     listeners.register(
-      "album",
-      "category/ls",
+      "albums",
+      "albums/ls",
       (_: any, payload: { image: string; name: string }[]) => {
+        console.log("album", cloneDeep(payload));
         emptyAndFillArray(albums, payload);
-      },
-      true,
-      { payload: { categoryType: "album" } }
+      }
     );
 
-    listeners.register("favorite", "favorite/all", (_: any, payload: any) => {
-      console.log(payload);
-    });
+    listeners.register(
+      "artists",
+      "artists/ls",
+      (_: any, payload: { image: string; name: string }[]) => {
+        emptyAndFillArray(artists, payload);
+      }
+    );
+
+    const getArtistsImages = () => {
+      artists.forEach(async i => {
+        if (i.name === UNKNOWN_ARTIST) return;
+
+        listeners.emit("axios", {
+          q_endpoint: `https://quest-backend.vercel.app/api/artists/?q=${encodeURIComponent(
+            i.name
+          )}`,
+          q_original_name: i.name
+        });
+      });
+    };
+
+    listeners.register(
+      "axios",
+      "axios",
+      (_: any, data: any) => {
+        artists.some((i, targetIndex) => {
+          if (i.name === data.q_original_name) {
+            dripAnimation(targetIndex, false, () => {
+              i.image = data.picture_medium;
+              dripAnimation(targetIndex, true);
+            });
+
+            return true;
+          }
+        });
+      },
+      false
+    );
 
     listeners.register(
       "recently_played",
       "recently_played.get",
       (_: any, payload: Music[]) => {
-        console.log("recently played");
         emptyAndFillArray(recentlyAdded, payload.splice(0, 4));
       }
     );
@@ -176,7 +271,9 @@ export default defineComponent({
       getListeners,
       albumsCovers,
       albums,
-      recentlyAdded
+      artists,
+      recentlyAdded,
+      getArtistsImages
     };
   }
 });

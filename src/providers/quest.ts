@@ -1,10 +1,14 @@
 import { BrowserWindow } from "electron";
 import { Message } from "@/schema";
+import fs from "fs";
+import path from "path";
+
+type LogLevel = "error" | "log" | "warn" | "success";
 
 function templateFunction(
   title: string,
   body: string,
-  type: "error" | "log" | "warn" | "success",
+  type: LogLevel,
   event?: Electron.IpcMainEvent
 ) {
   const msg: Message = {
@@ -44,5 +48,23 @@ export class Quest {
 
   static warnAsync(title: string, body: string, event?: Electron.IpcMainEvent) {
     templateFunction(title, body, "warn", event);
+  }
+
+  static Log(message: string | any[] | object | number, logLevel: LogLevel) {
+    let pre = Date() + " :: " + logLevel + " :: ";
+    pre +=
+      typeof message === "string" || typeof message === "number"
+        ? message
+        : JSON.stringify(message);
+
+    pre += "\n";
+
+    fs.appendFile(
+      path.join(global.questUserData, "/database/logs.txt"),
+      pre,
+      err => {
+        if (err) console.error(err);
+      }
+    );
   }
 }

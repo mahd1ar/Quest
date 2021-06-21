@@ -48,13 +48,13 @@ function getAverageRGB(imgEl: HTMLImageElement) {
 class Listener {
   private elements: {
     name: string;
-    endpoint: string,
+    endpoint: string;
     action: Function;
     emitOnLoad: boolean;
     payload?: object;
   }[] = [];
 
-  constructor() { }
+  constructor() {}
 
   register(
     name: string,
@@ -67,13 +67,15 @@ class Listener {
     return this;
   }
 
-  emit(payload?: string | number) {
-    if (typeof payload === "string") {
-      this.sendAsync(findIndex(this.elements, i => i.name === payload));
-    } else if (typeof payload === "number") {
-      this.sendAsync(payload);
-    } else {
-      this.sendAsync(this.elements.length - 1);
+  emit(index: string | number, payload?: object) {
+    if (typeof index === "string") {
+      this.sendAsync(
+        findIndex(this.elements, i => i.name === index),
+        payload
+      );
+    } else if (typeof index === "number") {
+      if (index !== -1) this.sendAsync(index, payload);
+      else this.sendAsync(this.elements.length - 1, payload);
     }
   }
 
@@ -87,7 +89,9 @@ class Listener {
     });
   }
 
-  private sendAsync(index: number) {
+  private sendAsync(index: number, payload?: object) {
+    if (payload) this.elements[index].payload = payload;
+
     if (!this.elements[index].payload)
       ipcRenderer.send(this.elements[index].endpoint + ".req");
     else {

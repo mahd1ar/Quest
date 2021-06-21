@@ -92,18 +92,23 @@ export default async (request: VercelRequest, response: VercelResponse) => {
         try {
             const { data }: AxiosResponse<SearchResponseData.RootObject> = await axios.get(`https://api.deezer.com/search?q=${q}`);
 
-            const { data: data_ }: AxiosResponse<ArtistResponseData.RootObject> = await axios.get(`https://api.deezer.com/artist/${data.data[0].artist.id}`)
-            response.status(200).json(data_);
+            if (data.data.length) {
+
+                const { data: data_ }: AxiosResponse<ArtistResponseData.RootObject> = await axios.get(`https://api.deezer.com/artist/${data.data[0].artist.id}`)
+                response.status(200).json(data_);
+
+            } else {
+                response.status(500).send("artist not found");
+
+            }
 
         } catch (error) {
-
-            response.status(500).json({} as QuestHTTPResponse);
-
+            response.status(500).send(error)
         }
 
 
     } else {
-        response.status(400).json()
+        response.status(400).send("query string params (q) is not provided");
     }
 
 }

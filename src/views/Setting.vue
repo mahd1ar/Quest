@@ -171,7 +171,7 @@ export default defineComponent({
     );
 
     function addLibrary() {
-      listener.emit();
+      listener.emit(-1);
     }
     function save() {
       store.dispatch("changeLibraries", libraries);

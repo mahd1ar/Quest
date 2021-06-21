@@ -8,10 +8,6 @@ import { emptyAndFillArray } from "@/helpers";
 const howlerInstance: Howl[] = [];
 let currentTimeTracker: number;
 
-// function timeTrackerFn() {
-
-// }
-
 const seek = (state: State, progressPrecentage: string | number) => {
   const audioElement = howlerInstance[0];
   state.player.progress = Number(progressPrecentage);
@@ -114,6 +110,18 @@ const playMusic = (state: State, song: Music) => {
   currentTimeTracker = timeTracker;
 };
 
+const stopMusic = (state: State) => {
+  howlerInstance[0].stop();
+  howlerInstance.splice(0, 1);
+  clearInterval(currentTimeTracker);
+  state.player.status = "stopped";
+};
+
+const emptyMusic = (state: State) => {
+  stopMusic(state);
+  state.player.status = "empty";
+};
+
 const changeVolume = (state: State, num: number) => {
   state.player.volume = num;
   howlerInstance[0].volume(num / 100);
@@ -174,6 +182,8 @@ export default {
   pauseMusic,
   resumeMusic,
   playMusic,
+  stopMusic,
+  emptyMusic,
   changeVolume,
   pushNotification,
   removeNotification,

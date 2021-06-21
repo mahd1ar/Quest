@@ -3,7 +3,14 @@
 import chokidar from "chokidar";
 import { Music } from "@/schema";
 import dataurl from "dataurl";
-import { app, BrowserWindow, dialog, ipcMain, protocol } from "electron";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  protocol,
+  session
+} from "electron";
 import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
 import fs from "fs";
 import { flattenDeep } from "lodash";
@@ -16,8 +23,9 @@ import { UNKNOWN_ALBUM, UNKNOWN_ARTIST } from "./providers/constants";
 import { MainQueue, Task } from "./providers/utilities";
 import { seekMusic } from "./providers/MusicScanner";
 import { initRoutes } from "./endpoints";
+import axios from "axios";
+import { Quest } from "./providers/quest";
 const isDevelopment = process.env.NODE_ENV !== "production";
-
 // main queue
 
 const questQueue = new MainQueue();
@@ -43,7 +51,7 @@ async function createWindow() {
     }
   });
 
-  win.webContents.on("did-finish-load", function () {
+  win.webContents.on("did-finish-load", function() {
     win.show();
   });
 
@@ -86,6 +94,17 @@ app.on("ready", async () => {
     }
   }
   createWindow();
+
+  // const filter = {
+  //   urls: ['*://*.google.com/*']
+  // };
+
+  // session.defaultSession.webRequest.onBeforeSendHeaders(filter, (details, callback) => {
+  //   console.log("rh:", details.requestHeaders['Origin'])
+  //   details.requestHeaders['Origin'] = 'https://quest-backend.vercel.app';
+  //   details.headers['Origin'] = 'https://quest-backend.vercel.app';
+  //   callback({ requestHeaders: details.requestHeaders })
+  // });
 });
 
 // Exit cleanly on request from parent process in development mode.
@@ -111,7 +130,7 @@ ipcMain.on(
   "convert-to-data-url",
   (event, arg: { data: string; mime: string }) => {
     const x = dataurl.convert({ data: arg.data, mimetype: arg.mime });
-    // const data = readFileSync(arg.data);
+    // const data = readFileSync(arg.data)
     event.returnValue = x;
   }
 );
@@ -123,7 +142,27 @@ ipcMain.on("add-new-lib.req", event => {
   }
 });
 
-// win: Electron.BrowserWindow
+ipcMain.on(
+  "axios.req",
+  async (
+    event,
+    {
+      q_endpoint,
+      q_original_name
+    }: { q_endpoint: string; q_original_name: string }
+  ) => {
+    try {
+      console.log(q_endpoint);
+      const { data } = await axios.get(q_endpoint);
+      event.reply(
+        "axios.res",
+        Object.assign(data, { q_endpoint, q_original_name })
+      );
+    } catch (error) {
+      Quest.Log("request error : " + error, "error");
+    }
+  }
+);
 
 // INDEX MUSICS MECHANISM
 
@@ -146,7 +185,6 @@ ipcMain.on("minimize-appication", () => {
 });
 
 function startBuildingDatabase(absPath: string[]) {
-
   console.log("START BUILDING DATABASE");
   const albums = new Category("album");
   const artist = new Category("artist");

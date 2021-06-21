@@ -24,6 +24,17 @@
     <div id="controlers" class="w-1/3 flex flex-col h-full">
       <div class="h-3/5 flex justify-center items-center relative">
         <div
+          @click="emptyMusic"
+          class="rounded-ful text-gray-300 hover:text-gray-100 h-8 w-8 cursor-pointer flex mx-2 absolute left-0"
+        >
+          <div>
+            <svg class="m-1 w-full fill-current" viewBox="0 0 32 32">
+              <path :d="icons.close" />
+            </svg>
+          </div>
+        </div>
+
+        <div
           class="rounded-full h-8 w-8 text-gray-300 hover:text-gray-100 cursor-pointer flex mx-2"
         >
           <svg class="p-2 w-full fill-current" viewBox="0 0 32 32">
@@ -89,13 +100,17 @@
         </button>
       </div>
       <div class="h-2/5 w-full flex justify-between items-center">
-        <span class="text-sm text-gray-200 w-12 text-left">{{
-          currentTime
-        }}</span>
-        <input v-model="seek" type="range" class="w-full h-1 mx-2" />
-        <span class="text-sm text-gray-200 w-12 text-right">{{
-          duration
-        }}</span>
+        <span class="text-sm text-gray-200 w-12 text-left">
+          {{ currentTime }}
+        </span>
+        <input
+          v-model="seek"
+          type="range"
+          class="w-full h-1 mx-2 ring-cyan-300"
+        />
+        <span class="text-sm text-gray-200 w-12 text-right">
+          {{ duration }}
+        </span>
       </div>
     </div>
     <div
@@ -158,6 +173,7 @@ import { useStore, mapActions } from "vuex";
 
 import lottie, { AnimationItem } from "lottie-web";
 import { Listener } from "./frontEndUtils";
+import { mdiClose } from "@mdi/js";
 const { lifeCycleMixin } = require("@/components/mixins");
 
 const secToMin = (sec: number): string =>
@@ -196,7 +212,7 @@ export default defineComponent({
     const makeFavorite = () => {
       heartIcon.play();
       heartIconHalt.value = true;
-      listeners.emit();
+      listeners.emit(-1);
     };
 
     function getListeners(): Listener {
@@ -243,7 +259,7 @@ export default defineComponent({
       heartIconRef,
       heartIconHalt,
       musicStatus: computed(() => store.getters.musicStatus),
-      ...mapActions(["resumeMusic", "pauseMusic"]),
+      ...mapActions(["resumeMusic", "pauseMusic", "emptyMusic", "stopMusic"]),
 
       seek: computed({
         get() {
@@ -264,7 +280,10 @@ export default defineComponent({
       }),
       currentTime: computed(() => secToMin(store.state.player.currentTime)),
       progress: computed(() => store.state.player.progress),
-      currentMusic: computed(() => store.state.music)
+      currentMusic: computed(() => store.state.music),
+      icons: {
+        close: mdiClose
+      }
     };
   }
 });

@@ -19,10 +19,18 @@ export function initRoutes(questQueue: MainQueue) {
     });
   });
 
-  route("category/ls", questQueue, params => {
-    const categoryType: CategoryTypes = params.payload!.categoryType; // id album / artists
+  route("albums/ls", questQueue, () => {
+    const cat = new Category("album");
 
-    const cat = new Category(categoryType);
+    return cat.ls().map(async name => {
+      const image = (await cat.getMusic(cat.get(name)[0])).img;
+
+      return { name, image };
+    });
+  });
+
+  route("artists/ls", questQueue, () => {
+    const cat = new Category("artist");
 
     return cat.ls().map(async name => {
       const image = (await cat.getMusic(cat.get(name)[0])).img;

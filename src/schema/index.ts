@@ -37,6 +37,16 @@ interface CategoryBuilder extends IndexBuilder {
 
 type CategoryTypes = "album" | "artist" | "library";
 
+// interface DirectoryManager {
+//   index(),
+// 	create(),
+// store(),
+// 	show(id),
+//  	edit(),
+//  	update(),
+// destroy(),
+// }
+
 export {
   Music,
   ID3,

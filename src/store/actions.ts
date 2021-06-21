@@ -8,10 +8,10 @@ const setlibs = (
   c("setLibs", vals);
 };
 
-const addlib = ({ commit: c }: ActionContext<State, State>, val: string) => {
-  c("addLib", val);
-  return "zero";
-};
+// const addlib = ({ commit: c }: ActionContext<State, State>, val: string) => {
+//   c("addLib", val);
+//   return "zero";
+// };
 
 const resumeMusic = (
   { commit: c }: ActionContext<State, State>,
@@ -33,6 +33,17 @@ const playMusic = ({ commit: c }: ActionContext<State, State>, val: string) => {
 
 const seek = ({ commit: c }: ActionContext<State, State>, val: string) => {
   c("seek", val);
+};
+
+const stopMusic = ({ commit: c }: ActionContext<State, State>, val: string) => {
+  c("stopMusic", val);
+};
+
+const emptyMusic = (
+  { commit: c }: ActionContext<State, State>,
+  val: string
+) => {
+  c("emptyMusic", val);
 };
 
 const alert = (
@@ -61,8 +72,10 @@ const changeLibraries = (
 export default {
   resumeMusic,
   pauseMusic,
+  stopMusic,
+  emptyMusic,
   setlibs,
-  addlib,
+  // addlib,
   playMusic,
   seek,
   alert,
