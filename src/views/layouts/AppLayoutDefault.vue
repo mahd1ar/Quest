@@ -29,7 +29,7 @@
           </router-link>
 
           <router-link
-            to="#"
+            to="/search"
             class="text-gray-400 hover:bg-opacity-10 hover:bg-white px-2 flex items-center rounded-sm capitalize"
           >
             <svg
@@ -49,7 +49,7 @@
           </router-link>
 
           <li
-            class="text-gray-00 hover:bg-opacity-10 hover:bg-white px-2 flex items-center rounded-sm capitalize cursor-pointer"
+            class="text-gray-400 hover:bg-opacity-10 hover:bg-white px-2 flex items-center rounded-sm capitalize cursor-pointer"
           >
             <svg
               class="fill-current"
@@ -146,8 +146,11 @@ export default {
 
 <style lang="scss">
 .router-link-active {
-  @apply bg-gray-700 text-gray-100;
+  @apply bg-gray-700 text-gray-100 w-full h-full;
 }
+
+// .link {
+// }
 
 .gap {
   min-height: 6rem;

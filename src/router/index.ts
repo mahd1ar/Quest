@@ -22,12 +22,13 @@ const routes = [
     component: Setting
   },
   {
-    path: "/category/:category/:tag",
+    path: "/category/:categoryType/:categoryName",
     name: "category",
     meta: {
       layout: ""
     },
-    component: Category
+    component: Category,
+    props: true
   },
   {
     path: "/favorite",

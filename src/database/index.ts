@@ -348,7 +348,8 @@ class Favorites extends Index<{ id: string; fullpath: string }[]>
 
     if (value) this.m_buffer.push({ id, fullpath });
 
-    fs.writeFileSync(this.fullpath, JSON.stringify(this.m_buffer, null, 2));
+    // fs.writeFileSync(this.fullpath, JSON.stringify(this.m_buffer, null, 2));
+    this.writeBufferSync();
   }
 
   get(id: string): boolean {

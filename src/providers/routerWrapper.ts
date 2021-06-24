@@ -6,7 +6,7 @@ import { Quest } from "./quest";
 export function route(
   routeValue: string,
   queue: MainQueue,
-  callback: (params: Message) => any
+  callback: (params: { [key: string]: any }) => any
 ) {
   const routeValueReq = routeValue + `.req`;
   const routeValueRes = routeValue + `.res`;

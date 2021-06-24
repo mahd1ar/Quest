@@ -54,14 +54,6 @@ const resumeMusic = (state: State) => {
 };
 
 const playMusic = (state: State, song: Music) => {
-  const musicSrc = song.fullpath;
-  // for(let i of Object.keys( state.music))
-  // state.music[i] = song[i];
-
-  // Object.keys( state.music).forEach(i=>{
-  //   state.music[i] = song[i];
-  // })
-
   Object.assign(state.music, song);
 
   state.player.status = "playing";
@@ -69,7 +61,7 @@ const playMusic = (state: State, song: Music) => {
   clearInterval(currentTimeTracker);
 
   const base64src: string = ipcRenderer.sendSync("convert-to-data-url", {
-    data: readFileSync(musicSrc),
+    data: readFileSync(state.music.fullpath),
     mime: "audio/mp3"
   });
 

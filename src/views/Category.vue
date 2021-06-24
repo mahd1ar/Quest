@@ -21,7 +21,7 @@
             <img
               v-if="musics.length > 0"
               class="image-target w-full h-full object-cover"
-              :src="musics[0].img"
+              :src="categoryImage || musics[0].img"
               alt
             />
           </transition>
@@ -36,7 +36,6 @@
           >
             <div class="text-sm uppercase">{{ categoryType }}</div>
             <div class="text-5xl mt-1">{{ categoryName }}</div>
-            <!-- <div class="text-sm mt-3">Mark Francis Carandang</div> -->
           </div>
         </transition>
       </div>
@@ -69,15 +68,13 @@
         </div>
       </transition-group>
     </div>
-
     <!-- GAP -->
     <div class="h-24"></div>
   </main>
 </template>
 
 <script lang="ts">
-import { useRoute } from "vue-router";
-import { defineComponent, ref, reactive, onMounted } from "vue";
+import { defineComponent, reactive, onMounted } from "vue";
 import { mdiChevronLeft } from "@mdi/js";
 import { Music } from "@/schema";
 import { emptyAndFillArray } from "@/helpers";
@@ -90,22 +87,13 @@ import anime from "animejs/lib/anime.es.js";
 export default defineComponent({
   name: "Home",
   mixins: [lifeCycleMixin],
-  setup() {
-    const route = useRoute();
+  props: ["categoryType", "categoryName", "categoryImage"],
+  setup(props) {
+    console.log(props);
+    const musics: Music[] = reactive([]),
+      colors: number[] = reactive([0, 0, 0]),
+      listeners = new Listener();
 
-    const categoryType = ref(""),
-      categoryName = ref(""),
-      musics: Music[] = reactive([]),
-      colors: number[] = reactive([0, 0, 0]);
-
-    categoryType.value = !Array.isArray(route.params.category)
-      ? route.params.category
-      : route.params.category[0];
-
-    categoryName.value = !Array.isArray(route.params.tag)
-      ? route.params.tag
-      : route.params.tag[0];
-    const listeners = new Listener();
     listeners.register(
       "getMusicsOfCategory",
       "category",
@@ -116,8 +104,8 @@ export default defineComponent({
       true,
       {
         payload: {
-          categoryType: route.params.category,
-          categoryName: route.params.tag
+          categoryType: props.categoryType,
+          categoryName: props.categoryName
         }
       }
     );
@@ -161,8 +149,6 @@ export default defineComponent({
       getListeners,
       colors,
       musics,
-      categoryType,
-      categoryName,
       icons: { back: mdiChevronLeft }
     };
   }

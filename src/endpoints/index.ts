@@ -2,6 +2,8 @@ import { route } from "@/providers/routerWrapper";
 import { Category, RecentlyAddedBuilder, Favorites } from "@/database";
 import { MainQueue } from "@/providers/utilities";
 import { CategoryTypes } from "@/schema";
+import { Quest } from "@/providers/quest";
+import axios from "axios";
 
 export function initRoutes(questQueue: MainQueue) {
   route("recently_played.get", questQueue, () => {
@@ -23,9 +25,9 @@ export function initRoutes(questQueue: MainQueue) {
     const cat = new Category("album");
 
     return cat.ls().map(async name => {
-      const image = (await cat.getMusic(cat.get(name)[0])).img;
+      const x = await cat.getMusic(cat.get(name)[0]);
 
-      return { name, image };
+      return { name, image: x.img, artist: x.artist };
     });
   });
 
@@ -34,7 +36,7 @@ export function initRoutes(questQueue: MainQueue) {
 
     return cat.ls().map(async name => {
       const image = (await cat.getMusic(cat.get(name)[0])).img;
-
+      console.log(name);
       return { name, image };
     });
   });
@@ -56,6 +58,7 @@ export function initRoutes(questQueue: MainQueue) {
 
   route("favorite/set", questQueue, ({ payload }) => {
     let success = true;
+
     try {
       console.log("favorite/set", payload);
       const favs = new Favorites();
@@ -67,26 +70,18 @@ export function initRoutes(questQueue: MainQueue) {
     return success;
   });
 
-  // route("album_select", questQueue, async x => {
-  //   x.payload!.albumname = "unknown";
-  //   let albums = new Category("album", "csv", x.payload!.albumname);
-  //   return Promise.all(await albums.ls());
-  // });
-
-  // route("recently_played.set", questQueue, params => {
-  //   let recently = new RecentlyPlayedBuilder();
-  //   recently.process(
-  //     {
-  //       id: params.payload!.musicid,
-  //       album: "",
-  //       artist: "",
-  //       fullpath: "",
-  //       library: "",
-  //       modified: 0,
-  //       name: "",
-  //       title: ""
-  //     },
-  //     undefined
-  //   );
-  // });
+  route("api/artist", questQueue, async params => {
+    try {
+      const uri = "https://quest-backend.vercel.app/api";
+      const { data } = await axios.get(
+        uri + "/artists/?q=" + encodeURIComponent(params!.q_original_name)
+      );
+      Object.assign(data, params);
+      return data;
+    } catch (error) {
+      console.error(error);
+      Quest.Log(error, "error");
+      return [];
+    }
+  });
 }

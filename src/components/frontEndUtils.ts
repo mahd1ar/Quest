@@ -95,7 +95,6 @@ class Listener {
     if (!this.elements[index].payload)
       ipcRenderer.send(this.elements[index].endpoint + ".req");
     else {
-      console.log(this.elements[index].payload);
       ipcRenderer.send(
         this.elements[index].endpoint + ".req",
         this.elements[index].payload

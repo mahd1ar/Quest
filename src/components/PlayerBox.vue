@@ -96,7 +96,11 @@
           :disabled="heartIconHalt"
           class="rounded-full h-8 w-8 cursor-pointer flex mx-2 absolute right-0"
         >
-          <div ref="heartIconRef" @click="makeFavorite"></div>
+          <div
+            :class="{ pulse: currentMusic.favorite }"
+            ref="heartIconRef"
+            @click="makeFavorite"
+          ></div>
         </button>
       </div>
       <div class="h-2/5 w-full flex justify-between items-center">
@@ -156,6 +160,13 @@
         />
       </div>
 
+      <!-- <pre
+        class="w-300 absolute bottom-16 right-right-14 pointer-events-none"
+        style="text-align: end;"
+      >
+  {{$store.state.music}}
+      </pre>-->
+
       <div class="w-4 mx-1">
         <svg viewBox="0 0 24 24" class="fill-current">
           <path
@@ -199,20 +210,19 @@ export default defineComponent({
         if (res) store.dispatch("toggleHeart");
         else heartIconHalt.value = false;
       },
-      false,
-      {
-        payload: {
-          id: store.state.music.id,
-          fullpath: store.state.music.fullpath,
-          value: !store.state.music.favorite
-        }
-      }
+      false
     );
 
     const makeFavorite = () => {
       heartIcon.play();
       heartIconHalt.value = true;
-      listeners.emit(-1);
+      listeners.emit(-1, {
+        payload: {
+          id: store.state.music.id,
+          fullpath: store.state.music.fullpath,
+          value: !store.state.music.favorite
+        }
+      });
     };
 
     function getListeners(): Listener {
@@ -289,4 +299,29 @@ export default defineComponent({
 });
 </script>
 
-<style></style>
+<style>
+.pulse {
+  animation-name: tap;
+  animation-duration: 2s;
+  animation-iteration-count: 1;
+  animation-direction: normal;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+  animation-delay: 0s;
+}
+
+@keyframes tap {
+  0% {
+    transform: scale(0);
+  }
+  20% {
+    transform: scale(1.7);
+  }
+  90% {
+    transform: scale(1.7);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+</style>

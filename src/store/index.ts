@@ -2,27 +2,38 @@ import { createStore } from "vuex";
 import actions from "./actions";
 import getters from "./getters";
 import mutations from "./mutations";
-import * as Schema from "../schema";
+import { State } from "@/schema";
 
 // default parameters
+
 const volume = localStorage.getItem("quest.player.volume")
   ? Number(localStorage.getItem("quest.player.volume"))
   : 50;
-// const progress =  localStorage.getItem("quest.player.progress") ? Number(localStorage.getItem("quest.player.progress")): 0;
-const libraries: string[] = localStorage.getItem("quest-user-libraries")
-  ? JSON.parse(localStorage.getItem("quest-user-libraries")!)
-  : [];
+
+function getSevedSettings<T>(key: string, defaultSettings: T): T {
+  return localStorage.getItem(`quest-user-${key}`)
+    ? JSON.parse(localStorage.getItem(`quest-user-${key}`)!)
+    : defaultSettings;
+}
+
+const settings = getSevedSettings("settings", {
+  color: "cyan-300",
+  darkmode: false,
+  emojis: []
+});
+
+const libraries = getSevedSettings("libraries", []);
 
 const store = createStore({
   state() {
-    const state: Schema.State = {
+    const state: State = {
       loading: false,
       notifications: [],
       player: {
         volume,
         progress: 0,
-        nextSong: undefined,
-        preSong: undefined,
+        playList: [],
+        playListIndex: -1,
         status: "empty",
         duration: 0,
         currentTime: 0
@@ -39,7 +50,8 @@ const store = createStore({
         img: "",
         favorite: false
       },
-      libraries
+      libraries,
+      settings
     };
     return state;
   },

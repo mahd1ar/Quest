@@ -23,8 +23,7 @@ import { UNKNOWN_ALBUM, UNKNOWN_ARTIST } from "./providers/constants";
 import { MainQueue, Task } from "./providers/utilities";
 import { seekMusic } from "./providers/MusicScanner";
 import { initRoutes } from "./endpoints";
-import axios from "axios";
-import { Quest } from "./providers/quest";
+
 const isDevelopment = process.env.NODE_ENV !== "production";
 // main queue
 
@@ -141,28 +140,6 @@ ipcMain.on("add-new-lib.req", event => {
     event.reply("add-new-lib.res", res[0]);
   }
 });
-
-ipcMain.on(
-  "axios.req",
-  async (
-    event,
-    {
-      q_endpoint,
-      q_original_name
-    }: { q_endpoint: string; q_original_name: string }
-  ) => {
-    try {
-      console.log(q_endpoint);
-      const { data } = await axios.get(q_endpoint);
-      event.reply(
-        "axios.res",
-        Object.assign(data, { q_endpoint, q_original_name })
-      );
-    } catch (error) {
-      Quest.Log("request error : " + error, "error");
-    }
-  }
-);
 
 // INDEX MUSICS MECHANISM
 
@@ -308,7 +285,7 @@ function start(libraries: string[]) {
 
     console.log({ hasChanged });
     if (hasChanged) {
-      console.log(">librareis has changed");
+      console.log("> librareis has changed");
       startBuildingDatabase(libraries);
       task.done();
     } else {

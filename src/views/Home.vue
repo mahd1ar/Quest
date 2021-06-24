@@ -1,7 +1,6 @@
 <template>
   <main
     class="bg-gray-800 text-center text-white w-full overflow-y-scroll relative"
-    ref="page"
   >
     <div ref="gradient_pl" class="text-left p-8 transition-all delay-200">
       <!-- bg-gradient-to-b from-green-500  -->
@@ -74,7 +73,7 @@
               <div
                 class="text-sm my-2 text-gray-400 overflow-hidden overflow-ellipsis h-11 font-roboto"
               >
-                by mark francis carandang sdfage ergwergerg erwgwrg
+                by {{ album.artist }}
               </div>
             </span>
           </span>
@@ -82,17 +81,23 @@
       </div>
     </div>
 
+    <!-- v-intersection:once="incrementArtistCounter" -->
     <!-- Artists -->
     <div class="text-left p-8">
       <h2
         class="text-3xl capitalize my-6 px-3"
         v-show="artists.length > 0"
-        v-intersection:once="getArtistsImages"
+        ref="artistSection"
       >
         Artists
       </h2>
       <div class="flex flex-wrap">
-        <div v-for="(artist, index) in artists" :key="index" class="p-3">
+        <div
+          v-for="(artist, index) in artists"
+          :key="index"
+          class="p-3"
+          @click="lsCategory('artist', artist.name, artist.image)"
+        >
           <span
             class="bg-white bg-opacity-5 hover:bg-opacity-10 cursor-pointer flex flex-col rounded-sm w-40"
           >
@@ -100,6 +105,7 @@
               <img
                 :class="`artist-cover-${index}`"
                 class="w-full rounded-full h-full object-cover relative"
+                style="clip-path : circle(100% at 50% 50%)"
                 :src="artist.image"
               />
             </div>
@@ -131,19 +137,16 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive, watch } from "vue";
+import { defineComponent, ref, reactive, watch, Ref, onMounted } from "vue";
 import { Music } from "@/schema";
 import { mapActions } from "vuex";
-import { Listener } from "@/components/frontEndUtils.ts";
 import { emptyAndFillArray } from "../helpers";
-
 // @ts-ignore
 import anime from "animejs/lib/anime.es.js";
 import { useRouter } from "vue-router";
 import { UNKNOWN_ARTIST } from "@/providers/constants";
-const { lifeCycleMixin } = require("@/components/mixins");
-
-import { cloneDeep } from "lodash";
+import { useIntersectionObserver, whenever, and } from "@vueuse/core";
+import { useIpcRenderer } from "@vueuse/electron";
 
 const dripAnimation = (
   targetIndex: number,
@@ -153,7 +156,6 @@ const dripAnimation = (
   anime({
     targets: `.artist-cover-${targetIndex}`,
     easing: "easeInOutSine",
-    // reverse: reverseDirection,
     keyframes: reverseDirection
       ? [
           { clipPath: "circle(0% at 50% 50%)" },
@@ -172,76 +174,71 @@ const dripAnimation = (
 
 export default defineComponent({
   name: "Home",
-  mixins: [lifeCycleMixin],
   setup() {
     const router = useRouter();
+    const artistSection: Ref<HTMLElement | null> = ref(null);
 
     const recentlyAdded: Music[] = reactive([]),
-      albums: { image: string; name: string }[] = reactive([]),
+      albums: { image: string; name: string; artist: string }[] = reactive([]),
       albumsCovers = ref([]),
-      artists: { image: string; name: string }[] = reactive([]);
+      artists: { image: string; name: string }[] = reactive([]),
+      artistCounter = ref(false);
+    const ipcRenderer = useIpcRenderer();
 
-    const listeners = new Listener();
+    const targetIsVisible = ref(false);
 
-    listeners.register(
-      "albums",
-      "albums/ls",
+    onMounted(() => {
+      const { stop } = useIntersectionObserver(artistSection, (
+        [{ isIntersecting }] /* observerElement */
+      ) => {
+        targetIsVisible.value = isIntersecting;
+      });
+
+      whenever(and(targetIsVisible, artistCounter), () => {
+        stop();
+        artists.forEach(async i => {
+          if (i.name === UNKNOWN_ARTIST) return;
+
+          ipcRenderer.send("api/artist.req", { q_original_name: i.name });
+        });
+      });
+
+      ipcRenderer.send("albums/ls.req");
+      ipcRenderer.send("artists/ls.req");
+      ipcRenderer.send("recently_played.get.req");
+    });
+
+    ipcRenderer.on("api/artist.res", (_, data) => {
+      artists.some((i, targetIndex) => {
+        if (i.name === data.q_original_name) {
+          dripAnimation(targetIndex, false, () => {
+            i.image = data.picture_medium;
+            dripAnimation(targetIndex, true);
+          });
+
+          return true;
+        }
+      });
+    });
+
+    ipcRenderer.on(
+      "albums/ls.res",
       (_: any, payload: { image: string; name: string }[]) => {
-        console.log("album", cloneDeep(payload));
         emptyAndFillArray(albums, payload);
       }
     );
 
-    listeners.register(
-      "artists",
-      "artists/ls",
+    ipcRenderer.on(
+      "artists/ls.res",
       (_: any, payload: { image: string; name: string }[]) => {
         emptyAndFillArray(artists, payload);
+        artistCounter.value = true;
       }
     );
 
-    const getArtistsImages = () => {
-      artists.forEach(async i => {
-        if (i.name === UNKNOWN_ARTIST) return;
-
-        listeners.emit("axios", {
-          q_endpoint: `https://quest-backend.vercel.app/api/artists/?q=${encodeURIComponent(
-            i.name
-          )}`,
-          q_original_name: i.name
-        });
-      });
-    };
-
-    listeners.register(
-      "axios",
-      "axios",
-      (_: any, data: any) => {
-        artists.some((i, targetIndex) => {
-          if (i.name === data.q_original_name) {
-            dripAnimation(targetIndex, false, () => {
-              i.image = data.picture_medium;
-              dripAnimation(targetIndex, true);
-            });
-
-            return true;
-          }
-        });
-      },
-      false
-    );
-
-    listeners.register(
-      "recently_played",
-      "recently_played.get",
-      (_: any, payload: Music[]) => {
-        emptyAndFillArray(recentlyAdded, payload.splice(0, 4));
-      }
-    );
-
-    function getListeners(): Listener {
-      return listeners;
-    }
+    ipcRenderer.on("recently_played.get.res", (_: any, payload: Music[]) => {
+      emptyAndFillArray(recentlyAdded, payload.splice(0, 4));
+    });
 
     watch(albums, () => {
       setTimeout(
@@ -265,15 +262,24 @@ export default defineComponent({
 
     return {
       ...mapActions(["playMusic"]),
-      lsCategory: (catType: string, catName: string) => {
-        router.push(`/category/${catType}/${catName}`);
+      artistSection,
+      lsCategory: (
+        categoryType: string,
+        categoryName: string,
+        categoryImage: string = ""
+      ) => {
+        console.log(categoryImage);
+        router.push({
+          name: "category",
+          params: { categoryType, categoryName, categoryImage }
+        });
       },
-      getListeners,
       albumsCovers,
       albums,
       artists,
       recentlyAdded,
-      getArtistsImages
+      targetIsVisible
+      // incrementArtistCounter
     };
   }
 });
@@ -293,6 +299,7 @@ input[type="range"]::-webkit-slider-thumb {
 input[type="range"]::-webkit-slider-thumb:hover {
   opacity: 1;
 }
+
 ._3-line-3-dots {
   display: -webkit-box;
   -webkit-line-clamp: 3;

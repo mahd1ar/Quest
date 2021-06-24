@@ -21,18 +21,12 @@
             <h3
               class="text-lg text-blue-50 whitespace-nowrap overflow-ellipsis w-full overflow-x-hidden"
             >
-              {{ music.tile }}
+              {{ music.title }}
             </h3>
-            <div
-              class="text-sm my-2 text-gray-400 overflow-hidden overflow-ellipsis h-11 font-roboto"
-            >
-              {{ music.artist }}
-            </div>
-            <div
-              class="text-sm my-2 text-gray-400 overflow-hidden overflow-ellipsis h-11 font-roboto"
-            >
-              {{ music.album }}
-            </div>
+            <br />
+            {{ music.artist }}
+            <br />
+            {{ music.album }}
           </span>
         </span>
       </div>

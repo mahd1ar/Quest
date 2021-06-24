@@ -5,10 +5,6 @@ import store from "./store";
 import "./assets/tailwind.css";
 import deflayout from "@/views/layouts/AppLayoutDefault.vue";
 import { keys } from "lodash";
-localStorage.setItem(
-  "database-path",
-  "/home/mahdiyar/.config/quest/musics-db.json"
-);
 
 // // Vue.component("nolayout", nolayout);
 // const MyDirective = {

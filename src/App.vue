@@ -63,10 +63,11 @@ export default defineComponent({
   name: "App",
   components: { Notification, Player },
   setup() {
-    const route = useRoute();
-    const store = useStore();
-    const documentLoaded = ref(false);
-    const refreshIndex = ref(0);
+    const route = useRoute(),
+      store = useStore(),
+      documentLoaded = ref(false),
+      refreshIndex = ref(0);
+
     const questAlert = (params: Notif) => {
       store.dispatch("alert", params);
     };
