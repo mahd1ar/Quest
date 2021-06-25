@@ -2,6 +2,7 @@
 
 Quest is a cross platform Electron based music player
 ![quest](Screenshot.png)
+
 **quest is still in development**
 
 ## Built with

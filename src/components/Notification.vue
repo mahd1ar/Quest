@@ -4,57 +4,61 @@
       <div
         v-for="(item, index) in notifications"
         :key="item.id"
-        class="list-complete-item w-72 flex justify-center items-center m-1 font-medium py-1 px-2 bg-white rounded-sm border"
-        :class="colors[index]"
+        class="list-complete-item relative overflow-x-hidden"
       >
-        <div class="pr-4">
-          <svg
-            width="100%"
-            height="100%"
-            fill="#fff"
-            viewBox="0 0 24 24"
-            stroke
-            class="feather feather-check-circle w-5 h-5 mx-2"
-          >
-            <path v-if="item.type == 'warn'" :d="icons.warn" />
-            <path v-if="item.type == 'log'" :d="icons.log" />
-            <path v-if="item.type == 'success'" :d="icons.success" />
-            <path v-if="item.type == 'error'" :d="icons.error" />
-            <path
-              v-if="item.type == 'refresh'"
-              :d="icons.refresh"
-              class="animate-spin origin-center"
-            />
-          </svg>
-        </div>
         <div
-          class="text-xl font-normal max-w-full flex-initial overflow-hidden"
+          class="w-72 relative relative flex justify-center items-center m-1 font-medium py-1 px-2 bg-white rounded-sm border"
+          :class="colors[index]"
         >
-          <div class="py-2">
-            {{ item.title }}
-            <div v-if="item.body" class="text-sm font-base">
-              {{ item.body }}
-              <a href="/#"></a>
-            </div>
-          </div>
-        </div>
-        <div class="flex flex-auto flex-row-reverse">
-          <div>
+          <div class="pr-4">
             <svg
-              xmlns="http://www.w3.org/2000/svg"
               width="100%"
               height="100%"
-              fill="none"
+              fill="#fff"
               viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="feather feather-x cursor-pointer hover:text-green-400 rounded-full w-5 h-5 ml-2"
+              stroke
+              class="feather feather-check-circle w-5 h-5 mx-2"
             >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
+              <path v-if="item.type == 'warn'" :d="icons.warn" />
+              <path v-if="item.type == 'log'" :d="icons.log" />
+              <path v-if="item.type == 'success'" :d="icons.success" />
+              <path v-if="item.type == 'error'" :d="icons.error" />
+              <path
+                v-if="item.type == 'refresh'"
+                :d="icons.refresh"
+                class="animate-spin origin-center"
+              />
             </svg>
+          </div>
+          <div
+            class="text-xl font-normal max-w-full flex-initial overflow-hidden"
+          >
+            <div class="py-2">
+              {{ item.title }}
+              <div v-if="item.body" class="text-sm font-base">
+                {{ item.body }}
+                <a href="/#"></a>
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-auto flex-row-reverse">
+            <div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="100%"
+                height="100%"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="feather feather-x cursor-pointer hover:text-green-400 rounded-full w-5 h-5 ml-2"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
@@ -117,16 +121,27 @@ export default defineComponent({
   &-item {
     transition: all 0.8s ease;
     opacity: 1;
+    max-width: 100%;
   }
 
   &-enter-from,
   &-leave-to {
     opacity: 0;
-    transform: translateX(100%);
+    // transform: translateX(-10%);
+    max-width: 0%;
   }
 
   &-leave-active {
-    position: absolute;
+    position: relative;
+    // &:after {
+    //   content: " ";
+    //   position: absolute;
+    //   inset: 0;
+    //   z-index: 20;
+    //   background: red;
+    //   width: 100%;
+    //   height: 100%;
+    // }
   }
 }
 </style>

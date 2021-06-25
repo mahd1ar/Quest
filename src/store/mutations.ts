@@ -165,7 +165,7 @@ const changeLibraries = (state: State, values: string[]) => {
     }
 
     emptyAndFillArray(state.libraries, values);
-    localStorage.setItem("quest-user-libraries", JSON.stringify(values));
+    // localStorage.setItem("quest-user-libraries", JSON.stringify(values));
   }
 };
 
