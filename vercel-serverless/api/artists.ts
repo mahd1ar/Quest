@@ -95,7 +95,23 @@ export default async (request: VercelRequest, response: VercelResponse) => {
             if (data.data.length) {
 
                 const { data: data_ }: AxiosResponse<ArtistResponseData.RootObject> = await axios.get(`https://api.deezer.com/artist/${data.data[0].artist.id}`)
-                response.status(200).json(data_);
+
+                // axios({
+                //     method: 'GET',
+                //     url: data_.picture_medium,
+                //     headers: { 'Content-Type': 'image/jpeg' },
+                //     Referer: 'https://wx.qq.com/',
+                //     responseType: 'arraybuffer',
+                //     withCredentials: true
+                // })
+
+                const secoundResponse = await axios({ method: "GET", url: data_.picture_medium, headers: { 'Content-Type': 'image/jpeg' }, responseType: "arraybuffer", withCredentials: true })
+
+                // res.writeHeader(200, { 'Context-Type': 'image/png' })
+                response.writeHead(200, { 'Context-Type': 'image/png' })
+                response.end(secoundResponse.data)
+
+
 
             } else {
                 response.status(500).send("artist not found");
