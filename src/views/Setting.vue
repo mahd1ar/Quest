@@ -97,21 +97,19 @@
 <script lang="ts">
 import { defineComponent, Ref } from "vue";
 import { mdiClose, mdiGithub } from "@mdi/js";
-import { Listener } from "@/components/frontEndUtils";
 import { remove } from "lodash";
 import { useStore } from "vuex";
 import { useStorage } from "@vueuse/core";
 import { Storage } from "@/providers/constants";
 import { shell } from "electron";
-
-const { lifeCycleMixin } = require("@/components/mixins");
+import { useIpcRenderer } from "@vueuse/electron";
 
 export default defineComponent({
   name: "Home",
-  mixins: [lifeCycleMixin],
   setup() {
-    const store = useStore();
-    const icons = { close: mdiClose, github: mdiGithub };
+    const store = useStore(),
+      ipcRenderer = useIpcRenderer(),
+      icons = { close: mdiClose, github: mdiGithub };
 
     const libraries: Ref<string[]> = useStorage(Storage.Libraries, []);
 
@@ -119,29 +117,20 @@ export default defineComponent({
       shell.openExternal(url);
     };
 
-    const listener = new Listener();
-    listener.register(
-      "add new library",
-      "add-new-lib",
-      (_: any, params: string) => {
-        remove(libraries.value, i => i === params);
-        libraries.value.push(params);
-      },
-      false
-    );
+    ipcRenderer.on("add-new-lib.res", (_: any, params: string) => {
+      remove(libraries.value, i => i === params);
+      libraries.value.push(params);
+    });
 
-    function addLibrary() {
-      listener.emit(-1);
-    }
-
-    function save() {
+    const save = () => {
       store.dispatch("changeLibraries", libraries.value);
-    }
+    };
 
-    function getListeners() {
-      return listener;
-    }
-    return { open, libraries, getListeners, addLibrary, save, icons };
+    const addLibrary = () => {
+      ipcRenderer.send("add-new-lib.req");
+    };
+
+    return { open, libraries, save, icons, addLibrary };
   }
 });
 </script>

@@ -89,7 +89,6 @@ export default defineComponent({
   mixins: [lifeCycleMixin],
   props: ["categoryType", "categoryName", "categoryImage"],
   setup(props) {
-    console.log(props);
     const musics: Music[] = reactive([]),
       colors: number[] = reactive([0, 0, 0]),
       listeners = new Listener();

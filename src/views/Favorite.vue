@@ -71,17 +71,38 @@ export default defineComponent({
 </script>
 
 <style lang="scss">
+.rotateDown {
+  animation-name: rotateDown;
+}
+
+@keyframes rotateDown {
+  0% {
+    opacity: 1;
+    transform-origin: 0 0;
+    transform: perspective(800px) rotateX(0deg) translateZ(0px);
+  }
+
+  100% {
+    opacity: 0;
+    transform-origin: 50% 100%;
+    transform: perspective(800px) rotateX(-180deg) translateZ(300px);
+  }
+}
+
 .slide-up {
   &-enter-active,
   &-leave-active {
-    transition: all 1500ms cubic-bezier(0, 0, 0.1, 0.99);
-    transition-delay: var(--count);
+    animation-direction: reverse;
+    animation-name: rotateDown;
+    animation-duration: 1500ms;
+    // transition: all 1500ms cubic-bezier(0, 0, 0.1, 0.99);
+    animation-delay: var(--count);
   }
 
   &-enter-from,
   &-leave-to {
-    transform: translateY(30px);
-    opacity: 0;
+    animation-name: rotateDown;
+    // opacity: 0;
   }
 }
 </style>

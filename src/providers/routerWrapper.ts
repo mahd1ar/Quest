@@ -1,6 +1,5 @@
 import { MainQueue, Task } from "./utilities";
 import { ipcMain } from "electron";
-import { Message } from "@/schema";
 import { Quest } from "./quest";
 // router wrapper
 export function route(
@@ -13,17 +12,17 @@ export function route(
 
   ipcMain.on(routeValueReq, (event, params) => {
     new Task(queue, task => {
-      try {
-        const responce = callback(params);
-        responder(responce, (e: any) => {
-          console.log(routeValueRes);
-          event.reply(routeValueRes, e);
-        });
-      } catch (error) {
-        Quest.errorAsync("An error occurred", String(error), event);
-      } finally {
-        task.done();
-      }
+      // try {
+      const responce = callback(params);
+      responder(responce, (e: any) => {
+        console.log(routeValueRes);
+        event.reply(routeValueRes, e);
+      });
+      // } catch (error) {
+      //   Quest.errorAsync("An error occurred", String(error), event);
+      // } finally {
+      task.done();
+      // }
     }).ready();
   });
 }
@@ -33,16 +32,36 @@ function responder<T>(
   callback: Function
 ) {
   if (Array.isArray(argument) && isArrayOfPromomises(argument)) {
-    Promise.all(argument).then(i => {
-      callback(i);
+    Promise.allSettled(argument).then(response => {
+      const fulfilled = response.filter(i => i.status === "fulfilled");
+
+      callback((<PromiseFulfilledResult<T>[]>fulfilled).map(i => i.value));
+
+      response
+        .filter(i => i.status === "rejected")
+        .forEach(i => {
+          Quest.errorAsync(
+            "An error occurred",
+            (<PromiseRejectedResult>i).reason
+          );
+          Quest.Log(
+            "PromiseRejectedResult -> " + (<PromiseRejectedResult>i).reason,
+            "error"
+          );
+        });
     });
     return;
   }
 
   if (argument instanceof Promise) {
-    argument.then(i => {
-      callback(i);
-    });
+    argument
+      .then(i => {
+        callback(i);
+      })
+      .catch(error => {
+        Quest.errorAsync("An error occurred", error);
+        Quest.Log("PromiseRejectedResult -> " + error, "error");
+      });
     return;
   }
   callback(argument);

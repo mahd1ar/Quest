@@ -4,6 +4,12 @@
   >
     <div ref="gradient_pl" class="text-left p-8 transition-all delay-200">
       <!-- bg-gradient-to-b from-green-500  -->
+      <!-- <div class="w-20 h-20 bg-white fixed top-10 left-10 text-red-500">
+        <div class="sm:block md:hidden">sm</div>
+        <div class="md:block lg:hidden">md</div>
+        <div class="lg:block xl:hidden">lg</div>
+        <div class="xl:block 2xl:hidden">xl</div>
+      </div>-->
       <!-- card -->
       <h2 class="text-3xl capitalize">good evening</h2>
       <div class="my-6 flex flex-wrap">
@@ -42,46 +48,14 @@
       <h2 class="text-3xl capitalize my-6 px-3" v-show="albums.length > 0">
         Albums
       </h2>
-      <div class="flex overflow-x-hidden">
-        <div
-          v-for="(album, index) in albums"
-          :key="index"
-          class="2xl:w-1/6 xl:w-1/5 lg:w-1/4 sm:w-1/3 px-3"
-        >
-          <span
-            class="bg-white bg-opacity-5 hover:bg-opacity-10 cursor-pointer flex flex-col rounded-sm"
-            @click="lsCategory('album', album.name)"
-          >
-            <!-- <img class="rounded-md sm:m-2 lg:m-4 h-32 object-cover" :src="album.image" /> -->
-            <div class="rounded-md sm:m-2 lg:m-4 h-32 overflow-hidden relative">
-              <img
-                class="hi w-full h-full object-cover relative top-full"
-                :src="album.image"
-                :ref="
-                  el => {
-                    if (el) albumsCovers[index] = el;
-                  }
-                "
-              />
-            </div>
-            <span class="capitalize px-2 font-bold text-blue-100">
-              <h3
-                class="text-lg text-blue-50 whitespace-nowrap overflow-ellipsis w-full overflow-x-hidden"
-              >
-                {{ album.name }}
-              </h3>
-              <div
-                class="text-sm my-2 text-gray-400 overflow-hidden overflow-ellipsis h-11 font-roboto"
-              >
-                by {{ album.artist }}
-              </div>
-            </span>
-          </span>
-        </div>
-      </div>
+      <grid-style-items
+        :items="albums"
+        name="albums"
+        initial-style="transform: translateY(-100%); opacity: 1;"
+        @clicked="lsCategory('album', $event[0].name, $event[0].image)"
+      />
     </div>
 
-    <!-- v-intersection:once="incrementArtistCounter" -->
     <!-- Artists -->
     <div class="text-left p-8">
       <h2
@@ -101,7 +75,7 @@
           <span
             class="bg-white bg-opacity-5 hover:bg-opacity-10 cursor-pointer flex flex-col rounded-sm w-40"
           >
-            <div class="rounded-md sm:m-2 lg:m-4 overflow-hidden relative h-32">
+            <div class="rounded-md sm:m-4 lg:m-4 overflow-hidden relative h-32">
               <img
                 :class="`artist-cover-${index}`"
                 class="w-full rounded-full h-full object-cover relative"
@@ -138,7 +112,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, reactive, watch, Ref, onMounted } from "vue";
-import { Music } from "@/schema";
+import { Music, ImageManagerBufferType } from "@/schema";
 import { mapActions } from "vuex";
 import { emptyAndFillArray } from "../helpers";
 // @ts-ignore
@@ -147,6 +121,8 @@ import { useRouter } from "vue-router";
 import { UNKNOWN_ARTIST } from "@/providers/constants";
 import { useIntersectionObserver, whenever, and } from "@vueuse/core";
 import { useIpcRenderer } from "@vueuse/electron";
+import { remove } from "lodash";
+import GridStyleItems from "@/components/GridStyleItems.vue";
 
 const dripAnimation = (
   targetIndex: number,
@@ -166,23 +142,30 @@ const dripAnimation = (
           { clipPath: "circle(0% at 50% 50%)" }
         ],
     duration: 1000,
+    delay: 100 * targetIndex,
     complete: () => {
       onComplete && onComplete();
     }
   });
 };
 
+interface CategoryIterators {
+  image: string;
+  name: string;
+  description?: string;
+}
+
 export default defineComponent({
   name: "Home",
+  components: { GridStyleItems },
   setup() {
     const router = useRouter();
     const artistSection: Ref<HTMLElement | null> = ref(null);
 
-    const recentlyAdded: Music[] = reactive([]),
-      albums: { image: string; name: string; artist: string }[] = reactive([]),
-      albumsCovers = ref([]),
-      artists: { image: string; name: string }[] = reactive([]),
-      artistCounter = ref(false);
+    const recentlyAdded: Music[] = reactive([]);
+    const albums: CategoryIterators[] = reactive([]);
+    const artists: CategoryIterators[] = reactive([]);
+    const artistCounter = ref(false);
     const ipcRenderer = useIpcRenderer();
 
     const targetIsVisible = ref(false);
@@ -196,11 +179,10 @@ export default defineComponent({
 
       whenever(and(targetIsVisible, artistCounter), () => {
         stop();
-        artists.forEach(async i => {
-          if (i.name === UNKNOWN_ARTIST) return;
-
-          ipcRenderer.send("api/artist.req", { q_original_name: i.name });
-        });
+        const payload = artists
+          .filter(i => i.name !== UNKNOWN_ARTIST)
+          .map(i => i.name);
+        ipcRenderer.send("api/artist.req", payload);
       });
 
       ipcRenderer.send("albums/ls.req");
@@ -208,33 +190,28 @@ export default defineComponent({
       ipcRenderer.send("recently_played.get.req");
     });
 
-    ipcRenderer.on("api/artist.res", (_, data) => {
-      artists.some((i, targetIndex) => {
-        if (i.name === data.q_original_name) {
-          dripAnimation(targetIndex, false, () => {
-            i.image = data.picture_medium;
-            dripAnimation(targetIndex, true);
-          });
-
-          return true;
-        }
+    ipcRenderer.on("api/artist.res", (_, data: ImageManagerBufferType[]) => {
+      artists.forEach((j, imageIndex) => {
+        remove(data, i => {
+          if (i.name === j.name) {
+            dripAnimation(imageIndex, false, () => {
+              j.image = i.address;
+              dripAnimation(imageIndex, true);
+            });
+            return true;
+          }
+        });
       });
     });
 
-    ipcRenderer.on(
-      "albums/ls.res",
-      (_: any, payload: { image: string; name: string }[]) => {
-        emptyAndFillArray(albums, payload);
-      }
-    );
+    ipcRenderer.on("albums/ls.res", (_: any, payload: CategoryIterators[]) => {
+      emptyAndFillArray(albums, payload);
+    });
 
-    ipcRenderer.on(
-      "artists/ls.res",
-      (_: any, payload: { image: string; name: string }[]) => {
-        emptyAndFillArray(artists, payload);
-        artistCounter.value = true;
-      }
-    );
+    ipcRenderer.on("artists/ls.res", (_: any, payload: CategoryIterators[]) => {
+      emptyAndFillArray(artists, payload);
+      artistCounter.value = true;
+    });
 
     ipcRenderer.on("recently_played.get.res", (_: any, payload: Music[]) => {
       emptyAndFillArray(recentlyAdded, payload.splice(0, 4));
@@ -244,8 +221,8 @@ export default defineComponent({
       setTimeout(
         () => {
           anime({
-            targets: albumsCovers.value,
-            translateY: "-100%",
+            targets: ".albums-cover",
+            translateY: "0%",
             duration: 900,
             opacity: [0, 1],
             easing: "easeOutQuint",
@@ -274,12 +251,10 @@ export default defineComponent({
           params: { categoryType, categoryName, categoryImage }
         });
       },
-      albumsCovers,
       albums,
       artists,
       recentlyAdded,
       targetIsVisible
-      // incrementArtistCounter
     };
   }
 });

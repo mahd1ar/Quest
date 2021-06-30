@@ -10,10 +10,11 @@ declare module "dataurl" {
 }
 
 
-declare module NodeJS  {
+declare module NodeJS {
     interface Global {
         questQueue: any,
-        questUserData: string
-        
+        questUserData: string;
+        secondaryQueue: any;
+
     }
 }

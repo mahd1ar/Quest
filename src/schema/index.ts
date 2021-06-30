@@ -37,15 +37,11 @@ interface CategoryBuilder extends IndexBuilder {
 
 type CategoryTypes = "album" | "artist" | "library";
 
-// interface DirectoryManager {
-//   index(),
-// 	create(),
-// store(),
-// 	show(id),
-//  	edit(),
-//  	update(),
-// destroy(),
-// }
+interface ImageManagerBufferType {
+  name: string;
+  address: string;
+  createdAt: number;
+}
 
 export {
   Music,
@@ -57,5 +53,6 @@ export {
   Message,
   Notification,
   State,
-  Shadow
+  Shadow,
+  ImageManagerBufferType
 };

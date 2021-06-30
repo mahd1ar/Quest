@@ -3,21 +3,20 @@
 import chokidar from "chokidar";
 import { Music } from "@/schema";
 import dataurl from "dataurl";
-import {
-  app,
-  BrowserWindow,
-  dialog,
-  ipcMain,
-  protocol,
-  session
-} from "electron";
+import { app, BrowserWindow, dialog, ipcMain, protocol } from "electron";
 import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
 import fs from "fs";
 import { flattenDeep } from "lodash";
 import NodeID3 from "node-id3";
 import path from "path";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
-import { RecentlyAddedBuilder, Shadows, Category, Favorites } from "./database";
+import {
+  RecentlyAddedBuilder,
+  Shadows,
+  Category,
+  Favorites,
+  ImageManager
+} from "./database";
 import { areDiffrent } from "./helpers";
 import { UNKNOWN_ALBUM, UNKNOWN_ARTIST } from "./providers/constants";
 import { MainQueue, Task } from "./providers/utilities";
@@ -28,6 +27,7 @@ const isDevelopment = process.env.NODE_ENV !== "production";
 // main queue
 
 const questQueue = new MainQueue();
+Object.assign(global, { secondaryQueue: new MainQueue() });
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
@@ -41,8 +41,9 @@ async function createWindow() {
     height: 600,
     show: false,
     frame: false,
-    // transparent:true,
+    transparent: true,
     webPreferences: {
+      webSecurity: false,
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info
       // nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION
@@ -144,12 +145,12 @@ ipcMain.on("add-new-lib.req", event => {
 // INDEX MUSICS MECHANISM
 
 // GLOBALS
-
 global.questUserData = app.getPath("userData");
+
+new ImageManager().setup();
 
 if (!fs.existsSync(path.join(app.getPath("userData"), "database"))) {
   fs.mkdirSync(path.join(app.getPath("userData"), "database"));
-  fs.mkdirSync(path.join(app.getPath("userData"), "database/indexes"));
 }
 const watcherInstance: chokidar.FSWatcher[] = [];
 
@@ -218,6 +219,7 @@ function compair(entryPints: string[]): boolean {
   if (areDiffrent(folders.ls(), entryPints)) {
     return true;
   }
+
   const shadow = new Shadows();
   if (!shadow.existSync()) {
     return true;

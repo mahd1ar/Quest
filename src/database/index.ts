@@ -9,7 +9,8 @@ import {
   FileBuilder,
   IndexBuilder,
   Music,
-  Shadow
+  Shadow,
+  ImageManagerBufferType
 } from "@/schema";
 import { remove } from "lodash";
 import dataurl from "dataurl";
@@ -17,6 +18,8 @@ import fs from "fs";
 import NodeID3 from "node-id3";
 import path from "path";
 import { emptyAndFillArray } from "@/helpers";
+import axios from "axios";
+import { v4 as uuidv4 } from "uuid";
 
 // function getImageTag({ image }: NodeID3.Tags): string {
 //   let img: string;
@@ -361,4 +364,98 @@ class Favorites extends Index<{ id: string; fullpath: string }[]>
   }
 }
 
-export { RecentlyAddedBuilder, Shadows, Category, Favorites };
+class ImageManager {
+  private cacheLimit = 20;
+  private m_buffer: ImageManagerBufferType[];
+  basepath: string;
+  private name = "artists_pictures";
+
+  constructor() {
+    this.basepath = path.join(global.questUserData, "/database");
+
+    if (this.existsSync())
+      this.m_buffer = JSON.parse(fs.readFileSync(this.fullpath).toString());
+    else this.m_buffer = [];
+  }
+
+  private existsSync() {
+    return fs.existsSync(this.fullpath);
+  }
+
+  setup() {
+    // create file
+    if (!this.existsSync()) this.writeBufferSync();
+
+    // create folder that contains
+    if (!fs.existsSync(path.join(this.basepath, this.name)))
+      fs.mkdirSync(path.join(this.basepath, this.name));
+  }
+
+  find(key: keyof ImageManagerBufferType, value: any) {
+    return this.m_buffer.find(i => i[key] === value);
+  }
+
+  findOrFetch(name: string): Promise<ImageManagerBufferType> {
+    return new Promise((resolve, reject) => {
+      const x = this.find("name", name);
+      if (x) resolve(x);
+      else
+        this.create(name)
+          .then(resolve)
+          .catch(reject);
+    });
+  }
+
+  private create(dataName: string): Promise<ImageManagerBufferType> {
+    return new Promise((resolve, reject) => {
+      const id = uuidv4();
+      const imagePath = path.resolve(this.basepath, this.name, id + ".jpg");
+      const writer = fs.createWriteStream(imagePath);
+      this.m_buffer.push({
+        name: dataName,
+        address: imagePath,
+        createdAt: Date.now()
+      });
+
+      const uri = "https://quest-backend.vercel.app/api";
+      console.log("SENDING REQUEST");
+      axios({
+        url: uri + "/artists/?q=" + encodeURIComponent(dataName),
+        method: "GET",
+        responseType: "stream"
+      })
+        .then(response => {
+          response.data.pipe(writer);
+
+          writer.on("finish", () => {
+            resolve(this.m_buffer.find(i => i.name === dataName)!);
+          });
+
+          writer.on("error", err => {
+            this.remove("name", dataName);
+            reject(err);
+          });
+        })
+        .catch(err => {
+          this.remove("name", dataName);
+          reject(err);
+        });
+    });
+  }
+
+  public remove(key: keyof ImageManagerBufferType, value: any) {
+    remove(this.m_buffer, i => i[key] === value);
+  }
+  public persist() {
+    this.writeBufferSync();
+  }
+
+  private writeBufferSync() {
+    fs.writeFileSync(this.fullpath, JSON.stringify(this.m_buffer, null, 2));
+  }
+
+  get fullpath() {
+    return path.resolve(this.basepath, this.name + ".json");
+  }
+}
+export { RecentlyAddedBuilder, Shadows, Category, Favorites, ImageManager };

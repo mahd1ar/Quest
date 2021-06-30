@@ -1,6 +1,11 @@
 import { route } from "@/providers/routerWrapper";
-import { Category, RecentlyAddedBuilder, Favorites } from "@/database";
-import { MainQueue } from "@/providers/utilities";
+import {
+  Category,
+  RecentlyAddedBuilder,
+  Favorites,
+  ImageManager
+} from "@/database";
+import { MainQueue, Task } from "@/providers/utilities";
 import { CategoryTypes } from "@/schema";
 import { Quest } from "@/providers/quest";
 import axios from "axios";
@@ -27,7 +32,7 @@ export function initRoutes(questQueue: MainQueue) {
     return cat.ls().map(async name => {
       const x = await cat.getMusic(cat.get(name)[0]);
 
-      return { name, image: x.img, artist: x.artist };
+      return { name, image: x.img, description: "by " + x.artist };
     });
   });
 
@@ -70,18 +75,17 @@ export function initRoutes(questQueue: MainQueue) {
     return success;
   });
 
-  route("api/artist", questQueue, async params => {
-    try {
-      const uri = "https://quest-backend.vercel.app/api";
-      const { data } = await axios.get(
-        uri + "/artists/?q=" + encodeURIComponent(params!.q_original_name)
-      );
-      Object.assign(data, params);
-      return data;
-    } catch (error) {
-      console.error(error);
-      Quest.Log(error, "error");
-      return [];
-    }
+  route("api/artist", questQueue, params => {
+    const imgMamt = new ImageManager();
+
+    const allPromises = (<string[]>params).map(artistname => {
+      return imgMamt.findOrFetch(artistname);
+    });
+
+    Promise.allSettled(allPromises).then(() => {
+      imgMamt.persist();
+    });
+
+    return allPromises;
   });
 }
