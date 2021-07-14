@@ -123,6 +123,11 @@ export default defineComponent({
     });
 
     const save = () => {
+      // store.dispatch("alert", {
+      //   title: "be khodemoon naft bedid",
+      //   body: "lorem ipsom some sorie cheghadr kharg kha",
+      //   type: "warn"
+      // });
       store.dispatch("changeLibraries", libraries.value);
     };
 

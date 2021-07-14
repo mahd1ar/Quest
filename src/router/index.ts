@@ -9,7 +9,8 @@ const routes = [
     path: "/",
     name: "Home",
     meta: {
-      layout: ""
+      layout: "",
+      keepAlive: true
     },
     component: Home
   },
@@ -17,7 +18,8 @@ const routes = [
     path: "/setting",
     name: "setting",
     meta: {
-      layout: ""
+      layout: "",
+      keepAlive: true
     },
     component: Setting
   },
@@ -25,7 +27,8 @@ const routes = [
     path: "/category/:categoryType/:categoryName",
     name: "category",
     meta: {
-      layout: ""
+      layout: "",
+      keepAlive: false,
     },
     component: Category,
     props: true
@@ -34,7 +37,8 @@ const routes = [
     path: "/favorite",
     name: "favorite",
     meta: {
-      layout: ""
+      layout: "",
+      keepAlive: false
     },
     component: Favorite
   }

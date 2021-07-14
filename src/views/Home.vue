@@ -2,6 +2,18 @@
   <main
     class="bg-gray-800 text-center text-white w-full overflow-y-scroll relative"
   >
+    <div class="relative h-72 w-full">
+      <img
+        class="w-full h-full object-cover"
+        src="https://images.unsplash.com/photo-1524230659092-07f99a75c013?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MXwxfDB8MXxhbGx8fHx8fHx8fA&ixlib=rb-1.2.1&q=80&w=1080&utm_source=unsplash_source&utm_medium=referral&utm_campaign=api-credit"
+      />
+      <div
+        class="absolute flex pl-10 items-center inset-0 w-full h-full bg-gray-900 bg-opacity-30"
+      >
+        <h1 class="text-4xl capitalize">music player</h1>
+      </div>
+    </div>
+
     <div ref="gradient_pl" class="text-left p-8 transition-all delay-200">
       <!-- bg-gradient-to-b from-green-500  -->
       <!-- <div class="w-20 h-20 bg-white fixed top-10 left-10 text-red-500">
@@ -45,26 +57,20 @@
     <!-- Albums -->
 
     <div class="text-left p-8">
-      <h2 class="text-3xl capitalize my-6 px-3" v-show="albums.length > 0">
-        Albums
-      </h2>
+      <h2 class="text-3xl capitalize my-6 px-3">Albums</h2>
       <grid-style-items
         :items="albums"
         name="albums"
         initial-style="transform: translateY(-100%); opacity: 1;"
         @clicked="lsCategory('album', $event[0].name, $event[0].image)"
+        @on-batch-action="log($event)"
+        :batch-action="true"
       />
     </div>
 
     <!-- Artists -->
-    <div class="text-left p-8">
-      <h2
-        class="text-3xl capitalize my-6 px-3"
-        v-show="artists.length > 0"
-        ref="artistSection"
-      >
-        Artists
-      </h2>
+    <div class="text-left p-8" v-if="artists.length > 0">
+      <h2 class="text-3xl capitalize my-6 px-3" ref="artistSection">Artists</h2>
       <div class="flex flex-wrap">
         <div
           v-for="(artist, index) in artists"
@@ -111,18 +117,18 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive, watch, Ref, onMounted } from "vue";
+import { defineComponent, ref, watch, Ref, onMounted, reactive } from "vue";
 import { Music, ImageManagerBufferType } from "@/schema";
-import { mapActions } from "vuex";
-import { emptyAndFillArray } from "../helpers";
+import { mapActions, useStore } from "vuex";
 // @ts-ignore
 import anime from "animejs/lib/anime.es.js";
 import { useRouter } from "vue-router";
 import { UNKNOWN_ARTIST } from "@/providers/constants";
 import { useIntersectionObserver, whenever, and } from "@vueuse/core";
-import { useIpcRenderer } from "@vueuse/electron";
-import { remove } from "lodash";
+import { remove, cloneDeep } from "lodash";
 import GridStyleItems from "@/components/GridStyleItems.vue";
+import { ipcRenderer } from "electron";
+import { fillArray } from "@/helpers";
 
 const dripAnimation = (
   targetIndex: number,
@@ -160,61 +166,59 @@ export default defineComponent({
   components: { GridStyleItems },
   setup() {
     const router = useRouter();
+    const store = useStore();
     const artistSection: Ref<HTMLElement | null> = ref(null);
-
     const recentlyAdded: Music[] = reactive([]);
-    const albums: CategoryIterators[] = reactive([]);
     const artists: CategoryIterators[] = reactive([]);
-    const artistCounter = ref(false);
-    const ipcRenderer = useIpcRenderer();
+    const albums: CategoryIterators[] = reactive([]);
 
+    const artistCounter = ref(false);
     const targetIsVisible = ref(false);
 
     onMounted(() => {
+      ipcRenderer.invoke("artists/ls").then((data: CategoryIterators[]) => {
+        fillArray(artists, data);
+        artistCounter.value = true;
+      });
+      ipcRenderer.invoke("albums/ls").then((data: CategoryIterators[]) => {
+        fillArray(albums, data);
+      });
+      ipcRenderer.invoke("recently_played.get").then((data: Music[]) => {
+        console.log(data);
+        fillArray(recentlyAdded, data);
+      });
+
       const { stop } = useIntersectionObserver(artistSection, (
         [{ isIntersecting }] /* observerElement */
       ) => {
         targetIsVisible.value = isIntersecting;
       });
 
-      whenever(and(targetIsVisible, artistCounter), () => {
+      whenever(and(targetIsVisible, artistCounter), async () => {
         stop();
         const payload = artists
           .filter(i => i.name !== UNKNOWN_ARTIST)
           .map(i => i.name);
-        ipcRenderer.send("api/artist.req", payload);
-      });
 
-      ipcRenderer.send("albums/ls.req");
-      ipcRenderer.send("artists/ls.req");
-      ipcRenderer.send("recently_played.get.req");
-    });
+        const data: ImageManagerBufferType[] = await ipcRenderer.invoke(
+          "api/artist",
+          payload
+        );
 
-    ipcRenderer.on("api/artist.res", (_, data: ImageManagerBufferType[]) => {
-      artists.forEach((j, imageIndex) => {
-        remove(data, i => {
-          if (i.name === j.name) {
-            dripAnimation(imageIndex, false, () => {
-              j.image = i.address;
-              dripAnimation(imageIndex, true);
-            });
-            return true;
-          }
+        const r = cloneDeep(data);
+
+        artists.forEach((j, imageIndex) => {
+          remove(r, i => {
+            if (i.name === j.name) {
+              dripAnimation(imageIndex, false, () => {
+                j.image = i.address;
+                dripAnimation(imageIndex, true);
+              });
+              return true;
+            }
+          });
         });
       });
-    });
-
-    ipcRenderer.on("albums/ls.res", (_: any, payload: CategoryIterators[]) => {
-      emptyAndFillArray(albums, payload);
-    });
-
-    ipcRenderer.on("artists/ls.res", (_: any, payload: CategoryIterators[]) => {
-      emptyAndFillArray(artists, payload);
-      artistCounter.value = true;
-    });
-
-    ipcRenderer.on("recently_played.get.res", (_: any, payload: Music[]) => {
-      emptyAndFillArray(recentlyAdded, payload.splice(0, 4));
     });
 
     watch(albums, () => {
@@ -237,24 +241,34 @@ export default defineComponent({
       );
     });
 
+    const lsCategory = (
+      categoryType: string,
+      categoryName: string,
+      categoryImage: string = ""
+    ) => {
+      router.push({
+        name: "category",
+        params: { categoryType, categoryName, categoryImage }
+      });
+    };
+
     return {
       ...mapActions(["playMusic"]),
-      artistSection,
-      lsCategory: (
-        categoryType: string,
-        categoryName: string,
-        categoryImage: string = ""
-      ) => {
-        console.log(categoryImage);
-        router.push({
-          name: "category",
-          params: { categoryType, categoryName, categoryImage }
-        });
+      log: (a: any) => {
+        ipcRenderer
+          .invoke("category", {
+            payload: { categoryType: "album", categoryName: a[0].name }
+          })
+          .then(e => {
+            console.log(e);
+            store.dispatch("addToQueue", e);
+          });
       },
+      artistSection,
+      lsCategory,
       albums,
       artists,
-      recentlyAdded,
-      targetIsVisible
+      recentlyAdded
     };
   }
 });
@@ -263,16 +277,6 @@ export default defineComponent({
 <style lang="scss">
 .bg-inherit {
   background: inherit;
-}
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  cursor: pointer;
-  visibility: 1;
-  opacity: 0;
-}
-
-input[type="range"]::-webkit-slider-thumb:hover {
-  opacity: 1;
 }
 
 ._3-line-3-dots {

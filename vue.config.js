@@ -13,7 +13,7 @@ module.exports = {
         win: {
           target: ["nsis"],
           icon: "public/icons/favicon.ico",
-          requestedExecutionLevel: "requireAdministrator"
+          requestedExecutionLevel: "asInvoker"
         },
         nsis: {
           installerIcon: "public/icons/favicon.ico",

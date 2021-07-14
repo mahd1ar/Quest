@@ -77,39 +77,39 @@
 import { defineComponent, reactive, onMounted } from "vue";
 import { mdiChevronLeft } from "@mdi/js";
 import { Music } from "@/schema";
-import { emptyAndFillArray } from "@/helpers";
+import { fillArray } from "@/helpers";
 import { mapActions } from "vuex";
-import { Listener, getAverageRGB } from "@/components/frontEndUtils";
-const { lifeCycleMixin } = require("@/components/mixins");
+import { getAverageRGB } from "@/components/frontEndUtils";
+// const { lifeCycleMixin } = require("@/components/mixins");
 // @ts-ignore
 import anime from "animejs/lib/anime.es.js";
+import { ipcRenderer } from "electron";
 
 export default defineComponent({
-  name: "Home",
-  mixins: [lifeCycleMixin],
+  name: "Category",
+  // mixins: [lifeCycleMixin],
   props: ["categoryType", "categoryName", "categoryImage"],
   setup(props) {
-    const musics: Music[] = reactive([]),
-      colors: number[] = reactive([0, 0, 0]),
-      listeners = new Listener();
+    const musics: Music[] = reactive([]);
+    const colors: number[] = reactive([0, 0, 0]);
 
-    listeners.register(
-      "getMusicsOfCategory",
-      "category",
-      (_: any, musicsFromServer: Music[]) => {
-        console.log("getMusicsOfCategory", musicsFromServer);
-        emptyAndFillArray(musics, musicsFromServer);
-      },
-      true,
-      {
+    // linear-gradient(to top, rgb(236, 72, 153), rgba(0, 0, 0, 0), rgba(0, 0, 0, 0))
+
+    //   whenever(or(props.categoryType, props.categoryName), () => {
+    //   console.log('either a or b is truthy!')
+    // })
+
+    onMounted(async () => {
+      const musicsFromServer: Music[] = await ipcRenderer.invoke("category", {
         payload: {
           categoryType: props.categoryType,
           categoryName: props.categoryName
         }
-      }
-    );
-    // linear-gradient(to top, rgb(236, 72, 153), rgba(0, 0, 0, 0), rgba(0, 0, 0, 0))
-    onMounted(() => {
+      });
+
+      console.log("getMusicsOfCategory", musicsFromServer);
+      fillArray(musics, musicsFromServer);
+
       setTimeout(() => {
         const target = getAverageRGB(
           document.querySelector(".image-target") as HTMLImageElement
@@ -139,13 +139,12 @@ export default defineComponent({
         });
       }, 2300);
     });
-    function getListeners() {
-      return listeners;
-    }
 
     return {
       ...mapActions(["playMusic"]),
-      getListeners,
+      log: () => {
+        console.log(arguments);
+      },
       colors,
       musics,
       icons: { back: mdiChevronLeft }

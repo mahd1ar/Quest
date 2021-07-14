@@ -17,7 +17,7 @@ import dataurl from "dataurl";
 import fs from "fs";
 import NodeID3 from "node-id3";
 import path from "path";
-import { emptyAndFillArray } from "@/helpers";
+import { fillArray } from "@/helpers";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 
@@ -72,7 +72,7 @@ class Index<T> implements IndexBuilder {
     const location = this.location || "";
     return path.join(this.basePath, location, this.correspondingName);
   }
-  async getMusic(id: string): Promise<Music> {
+  async getMusic(id: string, includesImage: boolean = true): Promise<Music> {
     const shadowFile: Shadow = JSON.parse(
       fs
         .readFileSync(path.join(this.basePath, "/shadows", id + ".json"))
@@ -81,18 +81,19 @@ class Index<T> implements IndexBuilder {
 
     const tags = await NodeID3.Promise.read(shadowFile.fullpath);
 
-    let img: string;
+    let img: string = "";
 
-    if (tags.image) {
-      if (typeof tags.image === "string") img = tags.image;
-      else
-        img = dataurl.convert({
-          data: tags.image.imageBuffer,
-          mimetype: tags.image.mime
-        });
-    } else {
-      img = UNKNOWN_IMG;
-    }
+    if (includesImage)
+      if (tags.image) {
+        if (typeof tags.image === "string") img = tags.image;
+        else
+          img = dataurl.convert({
+            data: tags.image.imageBuffer,
+            mimetype: tags.image.mime
+          });
+      } else {
+        img = UNKNOWN_IMG;
+      }
 
     return {
       ...shadowFile,
@@ -335,7 +336,7 @@ class Favorites extends Index<{ id: string; fullpath: string }[]>
 
     if (isLastElement) {
       this.dump();
-      emptyAndFillArray(this.m_buffer, this.favorites);
+      fillArray(this.m_buffer, this.favorites);
       this.favorites.length = 0;
       this.writeBufferSync();
     }

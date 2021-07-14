@@ -29,6 +29,7 @@ const pauseMusic = (
 
 const playMusic = ({ commit: c }: ActionContext<State, State>, val: string) => {
   c("playMusic", val);
+  c("clearQueue")
 };
 
 const seek = ({ commit: c }: ActionContext<State, State>, val: string) => {
@@ -69,8 +70,26 @@ const changeLibraries = (
   c("changeLibraries", val);
 };
 
+const addToQueue = (
+  { commit: c }: ActionContext<State, State>,
+  val: string[]
+) => {
+  c("addToQueue", val);
+};
+
+const nextSong = (
+  { commit: c }: ActionContext<State, State>,
+  val: string[]
+) => {
+  c("nextSong", val);
+};
+
+
+
 export default {
+  addToQueue,
   resumeMusic,
+  nextSong,
   pauseMusic,
   stopMusic,
   emptyMusic,

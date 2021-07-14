@@ -3,30 +3,48 @@ import { ipcRenderer } from "electron";
 import { readFileSync } from "fs";
 import { remove, difference } from "lodash";
 import { Howl, Howler } from "howler";
-import { emptyAndFillArray } from "@/helpers";
+import { fillArray } from "@/helpers";
 import { useIntervalFn, Pausable } from "@vueuse/core";
 
 const howlerInstance: Howl[] = [];
 
 let timeTracker: Pausable;
 
+const songEnded = (state: State) => {
+
+  timeTracker.pause()
+  state.player.status = "finished";
+  state.player.progress = 100;
+}
+
+const traceSong = (state: State, audioElement: Howl) => {
+
+  state.player.currentTime = <number>audioElement.seek();
+  const t = <number>audioElement.seek() / state.player.duration;
+  state.player.progress = t * 100;
+  // on finished ...
+  // if (<number>audioElement.seek() + 1 > audioElement.duration()) {
+  //   timeTracker.pause();
+
+  //   state.player.status = "finished";
+  // }
+  console.log("t:", t)
+}
+
 const seek = (state: State, progressPrecentage: string | number) => {
   const audioElement = howlerInstance[0];
   state.player.progress = Number(progressPrecentage);
 
-  console.log((Number(progressPrecentage) / 100) * state.player.duration);
+  console.log(Number(progressPrecentage));
   audioElement.seek((Number(progressPrecentage) / 100) * state.player.duration);
+  if (timeTracker)
+    timeTracker.pause()
 
-  if (state.player.status === "playing") {
+  if (state.player.status === "playing")
     timeTracker = useIntervalFn(() => {
-      state.player.currentTime = <number>audioElement.seek();
-      if (<number>audioElement.seek() === audioElement.duration()) {
-        timeTracker.pause();
-
-        state.player.status = "finished";
-      }
+      traceSong(state, audioElement)
     }, 1000);
-  }
+
 };
 
 const pauseMusic = (state: State) => {
@@ -44,14 +62,7 @@ const resumeMusic = (state: State) => {
   audioElement.play();
 
   timeTracker = useIntervalFn(() => {
-    state.player.currentTime = <number>audioElement.seek();
-    const t = <number>audioElement.seek() / state.player.duration;
-    state.player.progress = t * 100;
-    if (t === 1) {
-      timeTracker.pause();
-
-      state.player.status = "finished";
-    }
+    traceSong(state, audioElement)
   }, 1000);
 };
 
@@ -61,13 +72,13 @@ const playMusic = (state: State, song: Music) => {
   state.player.status = "playing";
   timeTracker && timeTracker.pause();
 
-  const base64src: string = ipcRenderer.sendSync("convert-to-data-url", {
-    data: readFileSync(state.music.fullpath),
-    mime: "audio/mp3"
-  });
+  // const base64src: string = ipcRenderer.sendSync("convert-to-data-url", {
+  //   data: readFileSync(state.music.fullpath),
+  //   mime: "audio/mp3"
+  // });
 
   const howler = new Howl({
-    src: [base64src],
+    src: [state.music.fullpath],
     onplayerror: err => {
       console.log(err);
       pushNotification(state, {
@@ -82,12 +93,23 @@ const playMusic = (state: State, song: Music) => {
     }
   });
 
+
+
+  // const canvas = document.querySelector("canvas") as HTMLCanvasElement
   // const analyser = Howler.ctx.createAnalyser()
   // // Connect the masterGain -> analyser (disconnecting masterGain -> destination)
   // Howler.masterGain.connect(analyser);
 
   // // Connect the analyser -> destination
   // analyser.connect(Howler.ctx.destination);
+
+  // let ctx = canvas.getContext("2d");
+  // analyser.fftSize = 2048;
+  // let data = new Uint8Array(analyser.frequencyBinCount);
+
+
+
+
 
   if (howlerInstance[0]) howlerInstance.splice(0, 1)[0].stop();
 
@@ -97,19 +119,18 @@ const playMusic = (state: State, song: Music) => {
   howler.play();
 
   state.player.currentTime = 0;
+  howler.on("end", () => {
+    songEnded(state)
+  })
+
   timeTracker = useIntervalFn(() => {
-    state.player.currentTime = <number>howler.seek();
-    const t = <number>howler.seek() / state.player.duration;
-    state.player.progress = t * 100;
-    if (t === 1) {
-      timeTracker.pause();
-      state.player.status = "finished";
-    }
+    traceSong(state, howler)
   }, 1000);
 };
 
 const stopMusic = (state: State) => {
   howlerInstance[0].stop();
+  howlerInstance[0].off("end")
   howlerInstance.splice(0, 1);
   timeTracker.pause();
   state.player.status = "stopped";
@@ -170,13 +191,40 @@ const changeLibraries = (state: State, values: string[]) => {
       } as Notification);
     }
 
-    emptyAndFillArray(state.libraries, values);
+    fillArray(state.libraries, values);
     // localStorage.setItem("quest-user-libraries", JSON.stringify(values));
   }
 };
 
+const addToQueue = (state: State, values: Music[]) => {
+  //@ts-ignore
+  state.player.playList.splice(0, state.player.playList.length)
+  values.forEach((v: Music) => {
+
+    state.player.playList.push(v);
+  })
+  // state.player.playList[0] = values[0]
+  state.player.playListIndex = 0;
+
+  playMusic(state, values[0]);
+};
+
+const clearQueue = (state: State) => {
+  state.player.playList.splice(0, state.player.playList.length)
+}
+
+
+const nextSong = (state: State) => {
+  state.player.playListIndex++
+  playMusic(state, state.player.playList[state.player.playListIndex])
+};
+
+
 export default {
   seek,
+  nextSong,
+  addToQueue,
+  clearQueue,
   pauseMusic,
   resumeMusic,
   playMusic,

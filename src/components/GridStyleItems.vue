@@ -9,13 +9,33 @@
       <span
         class="bg-white bg-opacity-5 hover:bg-opacity-10 cursor-pointer flex flex-col rounded-sm w-40"
       >
-        <div class="rounded-md m-2 mb-4 overflow-hidden relative h-32">
+        <div
+          class="rounded-md m-2 mb-4 overflow-hidden relative h-32 hoverable"
+        >
           <img
             :class="`${name}-cover-${index} ${name}-cover`"
             class="w-full h-full object-cover relative"
             :style="initialStyle"
             :src="item.image"
           />
+          <div
+            v-if="batchAction"
+            @click.stop="$emit('on-batch-action', [item, index])"
+            class="absolute overflow-hidden bg-cyan-900 text-white bottom-1 right-1 rounded-full"
+          >
+            <svg
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="inline cursor-pointer p-1 rounded-full h-full"
+            >
+              <path :d="icons.play" />
+            </svg>
+            <span class="capitalize tracking-wider">play</span>
+          </div>
         </div>
         <span class="capitalize px-2 font-bold text-blue-100">
           <h3
@@ -38,6 +58,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import { mdiPlay } from "@mdi/js";
 
 export default defineComponent({
   name: "GridStyleItems",
@@ -46,6 +67,10 @@ export default defineComponent({
       required: false,
       type: String,
       default: null
+    },
+    batchAction: {
+      type: Boolean,
+      default: false
     },
     items: {
       type: Array,
@@ -57,9 +82,32 @@ export default defineComponent({
     }
   },
   setup() {
-    return {};
+    const icons = {
+      play: mdiPlay
+    };
+    return { icons };
   }
 });
 </script>
 
-<style lang="scss"></style>
+<style lang="scss" scoped>
+.hoverable {
+  div.absolute {
+    transform: scale(0);
+    transition: all 200ms ease;
+    width: 35px;
+    height: 35px;
+  }
+  &:hover {
+    div.absolute {
+      transform: scale(1.1);
+      transition-delay: 100ms;
+
+      &:hover {
+        width: 75px;
+        transform: scale(1);
+      }
+    }
+  }
+}
+</style>

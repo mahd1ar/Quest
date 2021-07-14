@@ -7,8 +7,9 @@
         class="list-complete-item relative overflow-x-hidden"
       >
         <div
-          class="w-72 relative relative flex justify-center items-center m-1 font-medium py-1 px-2 bg-white rounded-sm border"
+          class="w-72 relative relative flex justify-center items-center m-1 font-medium py-1 px-2 bg-white rounded-sm border bg-opacity-25"
           :class="colors[index]"
+          style="backdrop-filter: blur(20px)"
         >
           <div class="pr-4">
             <svg

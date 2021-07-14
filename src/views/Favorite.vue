@@ -37,34 +37,25 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive } from "vue";
-import { Listener } from "@/components/frontEndUtils";
+import { defineComponent, reactive, onMounted } from "vue";
 import { Music } from "@/schema";
-import { emptyAndFillArray } from "@/helpers";
-const { lifeCycleMixin } = require("@/components/mixins");
+import { fillArray } from "@/helpers";
+import { ipcRenderer } from "electron";
 
 export default defineComponent({
-  name: "Home",
-  mixins: [lifeCycleMixin],
+  name: "Favorite",
+  mixins: [],
   setup() {
     const musics: Music[] = reactive([]);
-    const listener = new Listener();
-
-    listener.register(
-      "favorites",
-      "favorite/all",
-      (_: any, params: Music[]) => {
-        console.log(params);
-        emptyAndFillArray(musics, params);
-      },
-      true
-    );
+    onMounted(async () => {
+      console.log("favorite monted");
+      const favorites: Music[] = await ipcRenderer.invoke("favorite/all");
+      console.log(favorites);
+      fillArray(musics, favorites);
+    });
 
     return {
-      musics,
-      getListeners: () => {
-        return listener;
-      }
+      musics
     };
   }
 });

@@ -1,8 +1,5 @@
 <template>
-  <div
-    id="app"
-    class="h-screen flex flex-col relative overflow-hidden reletive"
-  >
+  <div id="app" class="h-screen flex flex-col relative overflow-hidden reletive">
     <notification />
     <transition name="fade">
       <div
@@ -12,16 +9,13 @@
       >
         Quest
         {{
-          ["👽", "⚔", "🍕", "🤖", "👾", "😇"].sort(
-            () => Math.random() - Math.random()
-          )[0]
+        ["👽", "⚔", "🍕", "🤖", "👾", "😇"].sort(
+        () => Math.random() - Math.random()
+        )[0]
         }}
       </div>
     </transition>
-    <div
-      id="actionbar"
-      class="w-full flex bg-gray-900 text-blue-200 justify-end items-center h-8"
-    >
+    <div id="actionbar" class="w-full flex bg-gray-900 text-blue-200 justify-end items-center h-8">
       <div class="w-full text-gray-900" id="drag-area">.</div>
       <div class="flex">
         <div
@@ -37,11 +31,13 @@
       </div>
     </div>
 
-    <router-view v-slot="{ Component }">
-      <component :is="layout">
-        <component :is="Component" />
-      </component>
-    </router-view>
+    <component :is="layout">
+      <router-view v-slot="{ Component }">
+        <keep-alive :exclude="dontKeepThisAlive" :key="refreshIndex">
+          <component :is="Component" />
+        </keep-alive>
+      </router-view>
+    </component>
 
     <transition name="v">
       <player v-if="showPlayerBox" />
@@ -53,11 +49,14 @@
 import { defineComponent, onMounted, computed, ref, watch } from "vue";
 import { ipcRenderer } from "electron";
 import { Message, Notification as Notif } from "@/schema";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import Notification from "@/components/Notification.vue";
 import { useStore } from "vuex";
 import { mdiWindowMinimize, mdiWindowClose, mdiWindowMaximize } from "@mdi/js";
 import Player from "@/components/PlayerBox.vue";
+
+const capitalize = (str: string) =>
+  `${str.charAt(0).toUpperCase()}${str.slice(1)}`;
 
 export default defineComponent({
   name: "App",
@@ -67,6 +66,8 @@ export default defineComponent({
       store = useStore(),
       documentLoaded = ref(false),
       refreshIndex = ref(0);
+
+    const router = useRouter();
 
     const questAlert = (params: Notif) => {
       store.dispatch("alert", params);
@@ -79,6 +80,15 @@ export default defineComponent({
     });
 
     onMounted(() => {
+      ipcRenderer.on("DB-Changed.res", () => {
+        // this.$store.dispatch("alert", {
+        //   title: "re scanning library",
+        //   type: "refresh"
+        // });
+        console.log("DATANASE CHANGE");
+        refreshIndex.value++;
+      });
+
       ipcRenderer.send("quest-start", [...store.state.libraries]);
 
       watch(store.state.libraries, (val: string) => {
@@ -107,6 +117,15 @@ export default defineComponent({
     });
 
     return {
+      dontKeepThisAlive: computed(() => {
+        return router
+          .getRoutes()
+          .filter(i => !i.meta.keepAlive)
+          .map(i => {
+            return capitalize(<string>i.name!);
+          })
+          .join(",");
+      }),
       showPlayerBox,
       icons,
       documentLoaded,

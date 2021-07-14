@@ -16,7 +16,7 @@ function templateFunction(
     body,
     type
   };
-
+  console.log({ msg })
   if (event) event.reply("quest-notify", event);
   else BrowserWindow.getAllWindows()[0].webContents.send("quest-notify", msg);
 }

@@ -9,7 +9,7 @@ export default interface State {
     progress: number;
     // nextSong?: Music | string;
     // preSong?: Music | string;
-    playList: string[]; // list of musics ids
+    playList: Music[]; // list of musics ids
     playListIndex: number;
     status: "playing" | "paused" | "empty" | "stopped" | "finished";
     duration: number;

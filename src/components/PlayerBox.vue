@@ -1,4 +1,5 @@
 <template>
+  <!-- <canvas class="fixed top-10 left-10 w-96 h-96"></canvas> -->
   <div class="absolute bg-black w-screen bottom-0 h-24 flex flex-row">
     <div id="cover-and-title" class="flex w-1/3">
       <div id="cover" class="w-24 h-24 p-2">
@@ -78,9 +79,20 @@
         </div>
 
         <div
-          class="rounded-full h-8 w-8 text-gray-300 hover:text-gray-100 cursor-pointer flex mx-2"
+          ref="playNextBtn"
+          class="bg-red-500 rounded-full h-8 w-8 text-gray-300 hover:text-gray-100 cursor-pointer flex mx-2 relative"
         >
-          <svg class="p-2 w-full fill-current" viewBox="0 0 32 32">
+          <div
+            v-if="showPlayNextPreview && playNextPreview !== undefined"
+            class="w-32 h-10 bg-gray-400 absolute transform -translate-y-full bottom-1"
+          >
+            {{ playNextPreview.title }}
+          </div>
+
+          <svg
+            class="p-2 pointer-events-none w-full fill-current"
+            viewBox="0 0 32 32"
+          >
             <g>
               <path
                 d="M24.18,15.13,2.5,2.62A1,1,0,0,0,1,3.48v25a1,1,0,0,0,1.5.86L24.18,16.87A1,1,0,0,0,24.18,15.13ZM3,26.78V5.22L21.68,16Z"
@@ -104,17 +116,25 @@
         </button>
       </div>
       <div class="h-2/5 w-full flex justify-between items-center">
-        <span class="text-sm text-gray-200 w-12 text-left">
-          {{ currentTime }}
-        </span>
-        <input
-          v-model="seek"
-          type="range"
-          class="w-full h-1 mx-2 ring-cyan-300"
-        />
-        <span class="text-sm text-gray-200 w-12 text-right">
-          {{ duration }}
-        </span>
+        <span class="text-sm text-gray-200 w-12 text-left">{{
+          currentTime
+        }}</span>
+        <div class="mx-2 relative w-full">
+          <div class="h-1 bg-white w-full absolute top-0"></div>
+          <div
+            class="h-1 bg-gradient-to-r absolute from-green-400 to-blue-500"
+            :style="{ width: seek + '%' }"
+          ></div>
+          <!-- :class="['from-green-400 to-blue-500','from-purple-400 via-pink-500 to-red-500'][rand(2)]" -->
+          <input
+            v-model="seek"
+            type="range"
+            class="w-full absolute top-0 h-1 ring-cyan-300"
+          />
+        </div>
+        <span class="text-sm text-gray-200 w-12 text-right">{{
+          duration
+        }}</span>
       </div>
     </div>
     <div
@@ -183,8 +203,9 @@ import { defineComponent, computed, onMounted, ref, Ref, watch } from "vue";
 import { useStore, mapActions } from "vuex";
 
 import lottie, { AnimationItem } from "lottie-web";
-import { Listener } from "./frontEndUtils";
 import { mdiClose } from "@mdi/js";
+import { ipcRenderer } from "electron";
+import { useEventListener } from "@vueuse/core";
 const { lifeCycleMixin } = require("@/components/mixins");
 
 const secToMin = (sec: number): string =>
@@ -201,33 +222,39 @@ export default defineComponent({
     let heartIcon: AnimationItem;
     const heartIconRef: Ref<any> = ref(null);
     const heartIconHalt = ref(false);
-    const listeners = new Listener();
+    const showPlayNextPreview = ref(false);
 
-    listeners.register(
-      "favorite",
-      "favorite/set",
-      (_: any, res: boolean) => {
-        if (res) store.dispatch("toggleHeart");
-        else heartIconHalt.value = false;
-      },
-      false
-    );
+    const playNextBtn = ref<HTMLDivElement>();
+    useEventListener(playNextBtn, "mouseover", e => {
+      // e.stopImmediatePropagation();
+      // e.preventDefault();
+      // e.stopPropagation();
+      // console.log(e);
+      showPlayNextPreview.value = true;
+    });
 
-    const makeFavorite = () => {
+    useEventListener(playNextBtn, "mouseleave", e => {
+      // e.stopImmediatePropagation();
+      // e.preventDefault();
+      // e.stopPropagation();
+      // console.log(e);
+      showPlayNextPreview.value = false;
+    });
+
+    const makeFavorite = async () => {
       heartIcon.play();
       heartIconHalt.value = true;
-      listeners.emit(-1, {
+      const res: boolean = await ipcRenderer.invoke("favorite/set", {
         payload: {
           id: store.state.music.id,
           fullpath: store.state.music.fullpath,
           value: !store.state.music.favorite
         }
       });
-    };
 
-    function getListeners(): Listener {
-      return listeners;
-    }
+      if (res) store.dispatch("toggleHeart");
+      else heartIconHalt.value = false;
+    };
 
     function liked() {
       heartIcon.goToAndPlay(150);
@@ -264,7 +291,13 @@ export default defineComponent({
     });
 
     return {
-      getListeners,
+      playNextBtn,
+      showPlayNextPreview,
+      playNextPreview: computed(() => {
+        return store.state.player.playList[
+          store.state.player.playListIndex + 1
+        ];
+      }),
       makeFavorite,
       heartIconRef,
       heartIconHalt,
@@ -293,13 +326,14 @@ export default defineComponent({
       currentMusic: computed(() => store.state.music),
       icons: {
         close: mdiClose
-      }
+      },
+      rand: (range: number) => Math.floor(Math.random() * range)
     };
   }
 });
 </script>
 
-<style>
+<style lang="scss">
 .pulse {
   animation-name: tap;
   animation-duration: 2s;
@@ -324,4 +358,36 @@ export default defineComponent({
     transform: scale(1);
   }
 }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  background: transparent;
+}
+input[type="range"]:focus {
+  outline: none;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 10px;
+  cursor: pointer;
+  box-shadow: 0px 0px 0px #000000, 0px 0px 0px #0d0d0d;
+  background: #0000;
+  border-radius: 25px;
+  border: 0px solid #000101;
+}
+input[type="range"]::-webkit-slider-thumb {
+  box-shadow: 0px 0px 0px #000000, 0px 0px 0px #0d0d0d;
+  border: 0px solid #000000;
+  margin-top: -2px;
+  cursor: pointer;
+  opacity: 0;
+  &:hover {
+    opacity: 1;
+  }
+  /* -webkit-appearance: none; */
+}
+/* input[type="range"]:focus::-webkit-slider-runnable-track {
+  background: #6751b5;
+} */
 </style>

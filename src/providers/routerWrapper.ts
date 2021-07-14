@@ -1,29 +1,33 @@
 import { MainQueue, Task } from "./utilities";
 import { ipcMain } from "electron";
 import { Quest } from "./quest";
+import { resolve } from 'path';
 // router wrapper
 export function route(
   routeValue: string,
   queue: MainQueue,
   callback: (params: { [key: string]: any }) => any
 ) {
-  const routeValueReq = routeValue + `.req`;
-  const routeValueRes = routeValue + `.res`;
+  // const routeValueReq = routeValue + `.req`;
+  // const routeValueRes = routeValue + `.res`;
 
-  ipcMain.on(routeValueReq, (event, params) => {
-    new Task(queue, task => {
-      // try {
-      const responce = callback(params);
-      responder(responce, (e: any) => {
-        console.log(routeValueRes);
-        event.reply(routeValueRes, e);
-      });
-      // } catch (error) {
-      //   Quest.errorAsync("An error occurred", String(error), event);
-      // } finally {
-      task.done();
-      // }
-    }).ready();
+  ipcMain.handle(routeValue, (event, params) => {
+    return new Promise((resolve) => {
+
+      new Task(queue, task => {
+        // try {
+        const responce = callback(params);
+        responder(responce, (e: any) => {
+
+          resolve(e)
+        });
+        // } catch (error) {
+        //   Quest.errorAsync("An error occurred", String(error), event);
+        // } finally {
+        task.done();
+        // }
+      }).ready();
+    })
   });
 }
 

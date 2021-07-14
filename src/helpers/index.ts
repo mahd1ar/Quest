@@ -19,7 +19,7 @@ export function timeout(t: number): Promise<void> {
   });
 }
 
-export function emptyAndFillArray<T>(arr1: T[], arr2: T[]): void {
+export function fillArray<T>(arr1: T[], arr2: T[]): void {
   emptyArray(arr1);
   arr2.forEach(i => {
     arr1.push(i);

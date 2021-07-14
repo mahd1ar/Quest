@@ -22,6 +22,7 @@ import { UNKNOWN_ALBUM, UNKNOWN_ARTIST } from "./providers/constants";
 import { MainQueue, Task } from "./providers/utilities";
 import { seekMusic } from "./providers/MusicScanner";
 import { initRoutes } from "./endpoints";
+import { Quest } from './providers/quest';
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 // main queue
@@ -41,7 +42,7 @@ async function createWindow() {
     height: 600,
     show: false,
     frame: false,
-    transparent: true,
+    // transparent: true,
     webPreferences: {
       webSecurity: false,
       // Use pluginOptions.nodeIntegration, leave this alone
@@ -51,7 +52,7 @@ async function createWindow() {
     }
   });
 
-  win.webContents.on("did-finish-load", function() {
+  win.webContents.on("did-finish-load", function () {
     win.show();
   });
 
@@ -95,16 +96,6 @@ app.on("ready", async () => {
   }
   createWindow();
 
-  // const filter = {
-  //   urls: ['*://*.google.com/*']
-  // };
-
-  // session.defaultSession.webRequest.onBeforeSendHeaders(filter, (details, callback) => {
-  //   console.log("rh:", details.requestHeaders['Origin'])
-  //   details.requestHeaders['Origin'] = 'https://quest-backend.vercel.app';
-  //   details.headers['Origin'] = 'https://quest-backend.vercel.app';
-  //   callback({ requestHeaders: details.requestHeaders })
-  // });
 });
 
 // Exit cleanly on request from parent process in development mode.
@@ -208,6 +199,12 @@ function startBuildingDatabase(absPath: string[]) {
 
       task.done();
     }).ready();
+
+    if (inx + 1 === musicObjects.length) {
+      console.log("database changed")
+      BrowserWindow.getAllWindows()[0].webContents.send("DB-Changed.res");
+    }
+
   });
 
   console.log("end of start building database");
@@ -263,8 +260,8 @@ function watchAndIndex(libraries: string[]) {
 
   watcherInstance.forEach(watchre => watchre.close());
   watcherInstance.splice(0, watcherInstance.length);
-
-  BrowserWindow.getAllWindows()[0].webContents.send("DB-Changed.res");
+  // console.log("now_____________")
+  // BrowserWindow.getAllWindows()[0].webContents.send("DB-Changed.res");
 
   libraries.forEach(lib => {
     const w = watchForChange(lib, () => {
@@ -288,7 +285,7 @@ function start(libraries: string[]) {
     console.log({ hasChanged });
     if (hasChanged) {
       console.log("> librareis has changed");
-      startBuildingDatabase(libraries);
+      /* await */ startBuildingDatabase(libraries);
       task.done();
     } else {
       task.done();
@@ -306,10 +303,10 @@ function start(libraries: string[]) {
   startJob.ready();
 }
 
-ipcMain.on("quest-start", (_, args: string[]) => {
-  console.log("starts with ", args);
-  start(args);
-});
+// ipcMain.on("quest-start", (_, args: string[]) => {
+//   console.log("starts with ", args);
+//   start(args);
+// });
 
 // ipcMain.on("sleep-sync", async (event, params) => {
 //   await timeout(Number(params))

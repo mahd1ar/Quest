@@ -28,7 +28,7 @@
             <span class="px-4">home</span>
           </router-link>
 
-          <router-link
+          <!-- <router-link
             to="/search"
             class="text-gray-400 hover:bg-opacity-10 hover:bg-white px-2 flex items-center rounded-sm capitalize"
           >
@@ -46,7 +46,7 @@
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <span class="px-4">search</span>
-          </router-link>
+          </router-link>-->
 
           <li
             class="text-gray-400 hover:bg-opacity-10 hover:bg-white px-2 flex items-center rounded-sm capitalize cursor-pointer"

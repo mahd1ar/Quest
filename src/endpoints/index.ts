@@ -5,10 +5,8 @@ import {
   Favorites,
   ImageManager
 } from "@/database";
-import { MainQueue, Task } from "@/providers/utilities";
+import { MainQueue } from "@/providers/utilities";
 import { CategoryTypes } from "@/schema";
-import { Quest } from "@/providers/quest";
-import axios from "axios";
 
 export function initRoutes(questQueue: MainQueue) {
   route("recently_played.get", questQueue, () => {
@@ -53,7 +51,7 @@ export function initRoutes(questQueue: MainQueue) {
     console.log({ categoryName }, { categoryType });
     const cat = new Category(categoryType);
 
-    return cat.get(categoryName).map(i => cat.getMusic(i));
+    return cat.get(categoryName).map(i => cat.getMusic(i, false));
   });
 
   route("favorite/all", questQueue, () => {
