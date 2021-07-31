@@ -5,11 +5,10 @@ export default interface State {
   loading: boolean;
   notifications: Notification[];
   player: {
+    isVisible: boolean;
     volume: number;
     progress: number;
-    // nextSong?: Music | string;
-    // preSong?: Music | string;
-    playList: Music[]; // list of musics ids
+    playList: string[]; // list of musics ids
     playListIndex: number;
     status: "playing" | "paused" | "empty" | "stopped" | "finished";
     duration: number;
@@ -21,5 +20,8 @@ export default interface State {
     darkmode: boolean;
     color: string;
     emojis: string[];
+  };
+  canvas: {
+    status: boolean;
   };
 }

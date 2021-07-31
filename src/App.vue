@@ -2,18 +2,8 @@
   <div id="app" class="h-screen flex flex-col relative overflow-hidden reletive">
     <notification />
     <transition name="fade">
-      <div
-        id="welcome"
-        v-if="!documentLoaded"
-        class="bg-gray-900 flex justify-center items-center w-screen h-screen fixed inset-0 text-center text-blue-100 z-50 text-7xl"
-      >
-        Quest
-        {{
-        ["👽", "⚔", "🍕", "🤖", "👾", "😇"].sort(
-        () => Math.random() - Math.random()
-        )[0]
-        }}
-      </div>
+      <!-- v-if="veilUp" -->
+      <veil class="fixed" v-model:show="veilUp" />
     </transition>
     <div id="actionbar" class="w-full flex bg-gray-900 text-blue-200 justify-end items-center h-8">
       <div class="w-full text-gray-900" id="drag-area">.</div>
@@ -40,13 +30,28 @@
     </component>
 
     <transition name="v">
-      <player v-if="showPlayerBox" />
+      <player v-if="renderPlayerBox" :class="{hidden : !showPlayerBox}" />
+    </transition>
+    <transition name="vfade">
+      <div
+        v-if="overlay.status"
+        :style="{ transition: `all ${overlay.ttl}ms ease`}"
+        class="overlay absolute w-full h-full inset-0"
+        :class="`${overlay.bgColor}`"
+      ></div>
     </transition>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, computed, ref, watch } from "vue";
+import {
+  defineComponent,
+  onMounted,
+  computed,
+  ref,
+  watch,
+  reactive
+} from "vue";
 import { ipcRenderer } from "electron";
 import { Message, Notification as Notif } from "@/schema";
 import { useRoute, useRouter } from "vue-router";
@@ -54,32 +59,55 @@ import Notification from "@/components/Notification.vue";
 import { useStore } from "vuex";
 import { mdiWindowMinimize, mdiWindowClose, mdiWindowMaximize } from "@mdi/js";
 import Player from "@/components/PlayerBox.vue";
+import { useEventListener, and, whenever } from "@vueuse/core";
+import Veil from "@/components/Veil.vue";
+import { about, emitter } from "./components/frontEndUtils";
 
 const capitalize = (str: string) =>
   `${str.charAt(0).toUpperCase()}${str.slice(1)}`;
 
 export default defineComponent({
   name: "App",
-  components: { Notification, Player },
+  components: { Notification, Player, Veil },
   setup() {
-    const route = useRoute(),
-      store = useStore(),
-      documentLoaded = ref(false),
-      refreshIndex = ref(0);
-
+    const store = useStore();
+    const route = useRoute();
     const router = useRouter();
+    const veilUp = ref(false);
+    const refreshIndex = ref(0);
+    const overlay = reactive({
+      status: false,
+      bgColor: "bg-blue-900",
+      ttl: 800
+    });
+    // const homePageLoaded = ref(true); // TODO: implement this later
 
-    const questAlert = (params: Notif) => {
-      store.dispatch("alert", params);
-    };
-
-    window.addEventListener("load", () => {
+    useEventListener(window, "load", () => {
       setTimeout(() => {
-        documentLoaded.value = true;
+        veilUp.value = true;
       }, 1000);
     });
 
     onMounted(() => {
+      emitter.on("overlay", e => {
+        const o_bgColor = "bg-black";
+        const o_ttl = 800;
+
+        Object.assign(overlay, {
+          status: e.status,
+          bgColor: e.bgColor || o_bgColor,
+          ttl: e.ttl || o_ttl
+        });
+
+        setTimeout(() => {
+          e.callback && e.callback();
+        }, overlay.ttl);
+      });
+
+      emitter.on("veilup", e => {
+        veilUp.value = e;
+      });
+
       ipcRenderer.on("DB-Changed.res", () => {
         // this.$store.dispatch("alert", {
         //   title: "re scanning library",
@@ -102,7 +130,7 @@ export default defineComponent({
           body: params.body,
           type: params.type
         };
-        questAlert(msg);
+        about(msg);
       });
     });
 
@@ -112,36 +140,42 @@ export default defineComponent({
       close: mdiWindowClose
     };
 
-    const showPlayerBox = computed(() => {
-      return store.state.player.status !== "empty";
-    });
+    const renderPlayerBox = computed(
+      () => store.state.player.status !== "empty"
+    );
+
+    const showPlayerBox = computed(() => store.state.player.isVisible);
+
+    const dontKeepThisAlive = computed(() =>
+      router
+        .getRoutes()
+        .filter(i => !i.meta.keepAlive)
+        .map(i => capitalize(<string>i.name!))
+        .join(",")
+    );
+
+    const actionbar = (action: "close" | "minimize" | "maximize") => {
+      switch (action) {
+        case "close":
+          ipcRenderer.send("close-appication");
+          break;
+        case "minimize":
+          ipcRenderer.send("minimize-appication");
+          break;
+        default:
+          break;
+      }
+    };
 
     return {
-      dontKeepThisAlive: computed(() => {
-        return router
-          .getRoutes()
-          .filter(i => !i.meta.keepAlive)
-          .map(i => {
-            return capitalize(<string>i.name!);
-          })
-          .join(",");
-      }),
+      overlay,
+      dontKeepThisAlive,
+      renderPlayerBox,
       showPlayerBox,
       icons,
-      documentLoaded,
       refreshIndex,
-      actionbar: (action: "close" | "minimize" | "maximize") => {
-        switch (action) {
-          case "close":
-            ipcRenderer.send("close-appication");
-            break;
-          case "minimize":
-            ipcRenderer.send("minimize-appication");
-            break;
-          case "maximize":
-            break;
-        }
-      },
+      veilUp,
+      actionbar,
       layout: computed(() => route.meta.layout || "deflayout")
     };
   }
@@ -216,6 +250,18 @@ export default defineComponent({
   &-enter-active,
   &-leave-active {
     position: absolute;
+  }
+}
+
+.vfade {
+  &-enter-from,
+  &-leave-to {
+    opacity: 0;
+  }
+
+  &-leave-from,
+  &-enter-to {
+    opacity: 1;
   }
 }
 </style>

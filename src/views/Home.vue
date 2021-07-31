@@ -10,7 +10,7 @@
       <div
         class="absolute flex pl-10 items-center inset-0 w-full h-full bg-gray-900 bg-opacity-30"
       >
-        <h1 class="text-4xl capitalize">music player</h1>
+        <h1 class="text-4xl capitalize">good evening</h1>
       </div>
     </div>
 
@@ -23,7 +23,7 @@
         <div class="xl:block 2xl:hidden">xl</div>
       </div>-->
       <!-- card -->
-      <h2 class="text-3xl capitalize">good evening</h2>
+      <h2 class="text-3xl capitalize">recently added</h2>
       <div class="my-6 flex flex-wrap">
         <div
           v-for="music in recentlyAdded"
@@ -252,18 +252,26 @@ export default defineComponent({
       });
     };
 
+    const log = async (a: any) => {
+      try {
+        const musicsIds: string[] = await ipcRenderer.invoke("albums/all", {
+          payload: { albumName: a[0]["name"] }
+        });
+
+        await store.dispatch("addToQueue", musicsIds);
+
+        const firstSong: Music = await ipcRenderer.invoke("getMusicById", {
+          musicId: musicsIds[0]
+        });
+        store.dispatch("playMusic", firstSong);
+      } catch (error) {
+        alert(error);
+      }
+    };
+
     return {
       ...mapActions(["playMusic"]),
-      log: (a: any) => {
-        ipcRenderer
-          .invoke("category", {
-            payload: { categoryType: "album", categoryName: a[0].name }
-          })
-          .then(e => {
-            console.log(e);
-            store.dispatch("addToQueue", e);
-          });
-      },
+      log,
       artistSection,
       lsCategory,
       albums,

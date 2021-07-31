@@ -3,7 +3,8 @@ import {
   Category,
   RecentlyAddedBuilder,
   Favorites,
-  ImageManager
+  ImageManager,
+  getMusic
 } from "@/database";
 import { MainQueue } from "@/providers/utilities";
 import { CategoryTypes } from "@/schema";
@@ -34,6 +35,12 @@ export function initRoutes(questQueue: MainQueue) {
     });
   });
 
+  route("albums/all", questQueue, param => {
+    const cat = new Category("album");
+
+    return cat.get(param.payload.albumName);
+  });
+
   route("artists/ls", questQueue, () => {
     const cat = new Category("artist");
 
@@ -51,7 +58,13 @@ export function initRoutes(questQueue: MainQueue) {
     console.log({ categoryName }, { categoryType });
     const cat = new Category(categoryType);
 
-    return cat.get(categoryName).map(i => cat.getMusic(i, false));
+    return cat.get(categoryName).map(i => cat.getMusic(i, true));
+  });
+
+  route("getMusicById", questQueue, async params => {
+    console.log(params);
+    const musicId: string = params.musicId;
+    return await getMusic(musicId, true);
   });
 
   route("favorite/all", questQueue, () => {

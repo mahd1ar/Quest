@@ -21,7 +21,7 @@
           <div
             v-if="batchAction"
             @click.stop="$emit('on-batch-action', [item, index])"
-            class="absolute overflow-hidden bg-cyan-900 text-white bottom-1 right-1 rounded-full"
+            class="absolute overflow-hidden bg-black text-white bottom-1 right-1 rounded-full"
           >
             <svg
               fill="currentColor"

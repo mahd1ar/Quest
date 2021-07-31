@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-full overflow-hidden relative" id="default-layout">
+  <div id="default-layout" class="flex h-full overflow-hidden relative">
     <div class="w-full xl:w-3/12 sm:w-4/12 bg-black text-white flex flex-col">
       <div class="w-full p-5">
         <!-- <img
@@ -134,6 +134,7 @@
 
 <script>
 import { mdiHeart, mdiCog } from "@mdi/js";
+
 export default {
   name: "AppLayoutDefault",
   setup() {

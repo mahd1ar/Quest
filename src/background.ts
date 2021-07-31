@@ -3,7 +3,14 @@
 import chokidar from "chokidar";
 import { Music } from "@/schema";
 import dataurl from "dataurl";
-import { app, BrowserWindow, dialog, ipcMain, protocol } from "electron";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  protocol,
+  Notification
+} from "electron";
 import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
 import fs from "fs";
 import { flattenDeep } from "lodash";
@@ -22,7 +29,7 @@ import { UNKNOWN_ALBUM, UNKNOWN_ARTIST } from "./providers/constants";
 import { MainQueue, Task } from "./providers/utilities";
 import { seekMusic } from "./providers/MusicScanner";
 import { initRoutes } from "./endpoints";
-import { Quest } from './providers/quest';
+import { Quest } from "./providers/quest";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 // main queue
@@ -52,7 +59,7 @@ async function createWindow() {
     }
   });
 
-  win.webContents.on("did-finish-load", function () {
+  win.webContents.on("did-finish-load", function() {
     win.show();
   });
 
@@ -95,7 +102,6 @@ app.on("ready", async () => {
     }
   }
   createWindow();
-
 });
 
 // Exit cleanly on request from parent process in development mode.
@@ -146,6 +152,14 @@ if (!fs.existsSync(path.join(app.getPath("userData"), "database"))) {
 const watcherInstance: chokidar.FSWatcher[] = [];
 
 ipcMain.on("close-appication", () => {
+  const NOTIFICATION_TITLE = "Basic Notification";
+  const NOTIFICATION_BODY = "See you soon buddy";
+
+  new Notification({
+    title: NOTIFICATION_TITLE,
+    body: NOTIFICATION_BODY
+  }).show();
+
   app.quit();
 });
 
@@ -201,10 +215,9 @@ function startBuildingDatabase(absPath: string[]) {
     }).ready();
 
     if (inx + 1 === musicObjects.length) {
-      console.log("database changed")
+      console.log("database changed");
       BrowserWindow.getAllWindows()[0].webContents.send("DB-Changed.res");
     }
-
   });
 
   console.log("end of start building database");
@@ -302,16 +315,6 @@ function start(libraries: string[]) {
 
   startJob.ready();
 }
-
-// ipcMain.on("quest-start", (_, args: string[]) => {
-//   console.log("starts with ", args);
-//   start(args);
-// });
-
-// ipcMain.on("sleep-sync", async (event, params) => {
-//   await timeout(Number(params))
-//   event.reply("sleep-sync");
-// });
 
 initRoutes(questQueue);
 questQueue.start();

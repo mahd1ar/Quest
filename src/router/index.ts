@@ -1,10 +1,12 @@
-import { createRouter, createWebHashHistory } from "vue-router";
+import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
 import Home from "../views/Home.vue";
 import Setting from "../views/Setting.vue";
 import Category from "@/views/Category.vue";
 import Favorite from "@/views/Favorite.vue";
+import Visualizer from "@/components/Visualizer.vue";
+import { emitter } from "@/components/frontEndUtils";
 
-const routes = [
+const routes: RouteRecordRaw[] = [
   {
     path: "/",
     name: "Home",
@@ -28,7 +30,7 @@ const routes = [
     name: "category",
     meta: {
       layout: "",
-      keepAlive: false,
+      keepAlive: false
     },
     component: Category,
     props: true
@@ -41,6 +43,16 @@ const routes = [
       keepAlive: false
     },
     component: Favorite
+  },
+  {
+    path: "/visualizer",
+    name: "visualizer",
+    meta: {
+      layout: "nolayout",
+      // layout: "",
+      keepAlive: false
+    },
+    component: Visualizer
   }
 ];
 

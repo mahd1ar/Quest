@@ -1,5 +1,6 @@
-import { ipcRenderer } from "electron";
-import { findIndex } from "lodash";
+import { Events, Notification } from "@/schema";
+import mitt from "mitt";
+import { useStore } from "vuex";
 
 function getAverageRGB(imgEl: HTMLImageElement) {
   const blockSize = 5; // only visit every 5 pixels
@@ -45,62 +46,15 @@ function getAverageRGB(imgEl: HTMLImageElement) {
   return rgb;
 }
 
-class Listener {
-  private elements: {
-    name: string;
-    endpoint: string;
-    action: Function;
-    emitOnLoad: boolean;
-    payload?: object;
-  }[] = [];
+// function visualizer(canvas?: HTMLCanvasElement) {
 
-  constructor() {}
+// }
 
-  register(
-    name: string,
-    endpoint: string,
-    action: Function,
-    emitOnLoad: boolean = true,
-    payload?: object
-  ) {
-    this.elements.push({ name, endpoint, action, emitOnLoad, payload });
-    return this;
-  }
-
-  emit(index: string | number, payload?: object) {
-    if (typeof index === "string") {
-      this.sendAsync(
-        findIndex(this.elements, i => i.name === index),
-        payload
-      );
-    } else if (typeof index === "number") {
-      if (index !== -1) this.sendAsync(index, payload);
-      else this.sendAsync(this.elements.length - 1, payload);
-    }
-  }
-
-  get() {
-    return this.elements;
-  }
-
-  unbindAll() {
-    this.elements.forEach(element => {
-      ipcRenderer.removeAllListeners(element.endpoint + ".res");
-    });
-  }
-
-  private sendAsync(index: number, payload?: object) {
-    if (payload) this.elements[index].payload = payload;
-
-    if (!this.elements[index].payload)
-      ipcRenderer.send(this.elements[index].endpoint + ".req");
-    else {
-      ipcRenderer.send(
-        this.elements[index].endpoint + ".req",
-        this.elements[index].payload
-      );
-    }
-  }
+function about(params: Notification) {
+  const store = useStore();
+  store.dispatch("alert", params);
 }
 
-export { getAverageRGB, Listener };
+const emitter = mitt<Events>();
+
+export { getAverageRGB, about, emitter };

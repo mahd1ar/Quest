@@ -1,7 +1,7 @@
 import { MainQueue, Task } from "./utilities";
 import { ipcMain } from "electron";
 import { Quest } from "./quest";
-import { resolve } from 'path';
+import { resolve } from "path";
 // router wrapper
 export function route(
   routeValue: string,
@@ -12,14 +12,12 @@ export function route(
   // const routeValueRes = routeValue + `.res`;
 
   ipcMain.handle(routeValue, (event, params) => {
-    return new Promise((resolve) => {
-
+    return new Promise(resolve => {
       new Task(queue, task => {
         // try {
         const responce = callback(params);
         responder(responce, (e: any) => {
-
-          resolve(e)
+          resolve(e);
         });
         // } catch (error) {
         //   Quest.errorAsync("An error occurred", String(error), event);
@@ -27,7 +25,7 @@ export function route(
         task.done();
         // }
       }).ready();
-    })
+    });
   });
 }
 

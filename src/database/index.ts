@@ -21,23 +21,40 @@ import { fillArray } from "@/helpers";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 
-// function getImageTag({ image }: NodeID3.Tags): string {
-//   let img: string;
-//   image;
-//   if (image) {
-//     if (typeof image === "string") img = image;
-//     else
-//       img = dataurl.convert({ data: image.imageBuffer, mimetype: image.mime });
-//   } else {
-//     img = UNKNOWN_IMG;
-//   }
-//   return img;
-// }
+async function getMusic(id: string, includesImage: boolean) {
+  const basePath = path.join(global.questUserData, "/database");
+  const shadowFile: Shadow = JSON.parse(
+    fs
+      .readFileSync(path.join(basePath, "/shadows", id + ".json"), {
+        flag: "r"
+      })
+      .toString()
+  );
 
-// string[] | object | object[]
-// function schemaIsNotStringArray<T>(index: Index<T>): T is string[] {
-//   return index.fileExt !== "json"
-// }
+  const tags = await NodeID3.Promise.read(shadowFile.fullpath);
+
+  let img: string = "";
+
+  if (includesImage)
+    if (tags.image) {
+      if (typeof tags.image === "string") img = tags.image;
+      else
+        img = dataurl.convert({
+          data: tags.image.imageBuffer,
+          mimetype: tags.image.mime
+        });
+    } else {
+      img = UNKNOWN_IMG;
+    }
+
+  return {
+    ...shadowFile,
+    album: tags.album || UNKNOWN_ALBUM,
+    artist: tags.artist || UNKNOWN_ARTIST,
+    img,
+    title: tags.title || shadowFile.name.replace(".mp3", "")
+  };
+}
 
 class Index<T> implements IndexBuilder {
   public basePath: string;
@@ -73,35 +90,7 @@ class Index<T> implements IndexBuilder {
     return path.join(this.basePath, location, this.correspondingName);
   }
   async getMusic(id: string, includesImage: boolean = true): Promise<Music> {
-    const shadowFile: Shadow = JSON.parse(
-      fs
-        .readFileSync(path.join(this.basePath, "/shadows", id + ".json"))
-        .toString()
-    );
-
-    const tags = await NodeID3.Promise.read(shadowFile.fullpath);
-
-    let img: string = "";
-
-    if (includesImage)
-      if (tags.image) {
-        if (typeof tags.image === "string") img = tags.image;
-        else
-          img = dataurl.convert({
-            data: tags.image.imageBuffer,
-            mimetype: tags.image.mime
-          });
-      } else {
-        img = UNKNOWN_IMG;
-      }
-
-    return {
-      ...shadowFile,
-      album: tags.album || UNKNOWN_ALBUM,
-      artist: tags.artist || UNKNOWN_ARTIST,
-      img,
-      title: tags.title || shadowFile.name.replace(".mp3", "")
-    };
+    return await getMusic(id, includesImage);
   }
   getShadow(id: string): Shadow {
     return JSON.parse(
@@ -459,4 +448,12 @@ class ImageManager {
     return path.resolve(this.basepath, this.name + ".json");
   }
 }
-export { RecentlyAddedBuilder, Shadows, Category, Favorites, ImageManager };
+export {
+  Index,
+  getMusic,
+  RecentlyAddedBuilder,
+  Shadows,
+  Category,
+  Favorites,
+  ImageManager
+};

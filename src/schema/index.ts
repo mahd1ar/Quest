@@ -43,7 +43,19 @@ interface ImageManagerBufferType {
   createdAt: number;
 }
 
+type Events = {
+  veilup: boolean;
+  veilDark: boolean;
+  overlay: {
+    ttl?: number;
+    status: boolean;
+    bgColor?: string;
+    callback?: () => void;
+  };
+};
+
 export {
+  Events,
   Music,
   ID3,
   IndexBuilder,

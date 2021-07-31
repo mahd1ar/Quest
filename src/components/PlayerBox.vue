@@ -36,8 +36,28 @@
         </div>
 
         <div
-          class="rounded-full h-8 w-8 text-gray-300 hover:text-gray-100 cursor-pointer flex mx-2"
+          @click="play('prv')"
+          ref="controllerPreviousBtn"
+          class="rounded-full h-8 w-8 text-gray-300 hover:text-gray-100 cursor-pointer flex mx-2 relative"
         >
+          <div
+            v-if="Object.keys(previousSong).length !== 0"
+            class="flex w-48 overflow-hidden rounded bg-gray-400 absolute transform -translate-y-full bottom-0 right-0 flex-row-reverse"
+          >
+            <img
+              :src="previousSong.img"
+              class="relative inset-0 object-cover w-14 h-full"
+            />
+            <div class="flex flex-col p-2 text-gray-900 overflow-hidden">
+              <h1
+                class="z-10 overflow-hidden overflow-ellipsis whitespace-nowrap font-bold"
+              >
+                {{ previousSong.title }}
+              </h1>
+              <p class="text-xs z-10">{{ previousSong.artist }}</p>
+            </div>
+          </div>
+
           <svg class="p-2 w-full fill-current" viewBox="0 0 32 32">
             <g>
               <path
@@ -78,15 +98,28 @@
           </svg>
         </div>
 
+        <!-- @click="playNextSong" -->
         <div
-          ref="playNextBtn"
-          class="bg-red-500 rounded-full h-8 w-8 text-gray-300 hover:text-gray-100 cursor-pointer flex mx-2 relative"
+          ref="controllerNextBtn"
+          @click="play('next')"
+          class="rounded-full h-8 w-8 text-gray-300 hover:text-gray-100 cursor-pointer flex mx-2 relative"
         >
           <div
-            v-if="showPlayNextPreview && playNextPreview !== undefined"
-            class="w-32 h-10 bg-gray-400 absolute transform -translate-y-full bottom-1"
+            v-if="Object.keys(nextSong).length !== 0"
+            class="flex w-48 overflow-hidden rounded bg-gray-400 absolute transform -translate-y-full bottom-0"
           >
-            {{ playNextPreview.title }}
+            <img
+              :src="nextSong.img"
+              class="relative inset-0 object-cover w-14 h-full"
+            />
+            <div class="flex flex-col p-2 text-gray-900 overflow-hidden">
+              <h1
+                class="z-10 overflow-hidden overflow-ellipsis whitespace-nowrap font-bold"
+              >
+                {{ nextSong.title }}
+              </h1>
+              <p class="text-xs z-10">{{ nextSong.artist }}</p>
+            </div>
           </div>
 
           <svg
@@ -116,9 +149,9 @@
         </button>
       </div>
       <div class="h-2/5 w-full flex justify-between items-center">
-        <span class="text-sm text-gray-200 w-12 text-left">{{
-          currentTime
-        }}</span>
+        <span class="text-sm text-gray-200 w-12 text-left">
+          {{ currentTime }}
+        </span>
         <div class="mx-2 relative w-full">
           <div class="h-1 bg-white w-full absolute top-0"></div>
           <div
@@ -132,16 +165,16 @@
             class="w-full absolute top-0 h-1 ring-cyan-300"
           />
         </div>
-        <span class="text-sm text-gray-200 w-12 text-right">{{
-          duration
-        }}</span>
+        <span class="text-sm text-gray-200 w-12 text-right">
+          {{ duration }}
+        </span>
       </div>
     </div>
     <div
       id="volume"
       class="w-1/3 flex justify-end items-center text-gray-100 p-3"
     >
-      <div class="w-4 mx-1">
+      <div class="w-4 mx-1 bg-green-400" @click="showVisualizer">
         <svg viewBox="0 0 32 32" class="fill-current">
           <g>
             <path
@@ -171,21 +204,8 @@
         </svg>
       </div>
       <div class="w-24">
-        <input
-          class="w-full max-h-1 hover:max-h-2"
-          max="100"
-          min="0"
-          v-model="volume"
-          type="range"
-        />
+        <progress-component v-model:percentage="volume" />
       </div>
-
-      <!-- <pre
-        class="w-300 absolute bottom-16 right-right-14 pointer-events-none"
-        style="text-align: end;"
-      >
-  {{$store.state.music}}
-      </pre>-->
 
       <div class="w-4 mx-1">
         <svg viewBox="0 0 24 24" class="fill-current">
@@ -199,13 +219,25 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, onMounted, ref, Ref, watch } from "vue";
+import {
+  defineComponent,
+  computed,
+  onMounted,
+  ref,
+  Ref,
+  watch,
+  reactive
+} from "vue";
 import { useStore, mapActions } from "vuex";
 
 import lottie, { AnimationItem } from "lottie-web";
 import { mdiClose } from "@mdi/js";
 import { ipcRenderer } from "electron";
 import { useEventListener } from "@vueuse/core";
+import { Music } from "@/schema";
+import { useRouter } from "vue-router";
+import Progress from "@/components/Progress.vue";
+
 const { lifeCycleMixin } = require("@/components/mixins");
 
 const secToMin = (sec: number): string =>
@@ -213,32 +245,75 @@ const secToMin = (sec: number): string =>
   ":" +
   String((Math.floor(sec % 60) / 10).toFixed(1)).replace(".", "");
 
+function flushObject<T>(a_object: T): any {
+  Object.keys(a_object).forEach(i => {
+    delete a_object[i as keyof T];
+  });
+}
+
 export default defineComponent({
   name: "Player",
-  components: {},
+  components: { "progress-component": Progress },
   mixins: [lifeCycleMixin],
   setup() {
     const store = useStore();
+    const router = useRouter();
     let heartIcon: AnimationItem;
     const heartIconRef: Ref<any> = ref(null);
     const heartIconHalt = ref(false);
-    const showPlayNextPreview = ref(false);
+    // const showPlayNextPreview = ref(false);
+    const nextSong: Music | {} = reactive({});
+    const previousSong: Music | {} = reactive({});
+    const controllerNextBtn = ref<HTMLDivElement>();
+    const controllerPreviousBtn = ref<HTMLDivElement>();
 
-    const playNextBtn = ref<HTMLDivElement>();
-    useEventListener(playNextBtn, "mouseover", e => {
-      // e.stopImmediatePropagation();
-      // e.preventDefault();
-      // e.stopPropagation();
-      // console.log(e);
-      showPlayNextPreview.value = true;
+    let timeKeeperNext: number;
+    let timeKeeperPrevious: number;
+
+    useEventListener(controllerNextBtn, "mouseover", () => {
+      if (store.state.player.playListIndex > -1)
+        timeKeeperNext = window.setTimeout(async () => {
+          const musicId =
+            store.state.player.playList[store.state.player.playListIndex + 1];
+
+          if (musicId) {
+            const m: Music = await ipcRenderer.invoke("getMusicById", {
+              musicId
+            });
+            Object.assign(nextSong, m);
+          }
+        }, 1200);
     });
 
-    useEventListener(playNextBtn, "mouseleave", e => {
-      // e.stopImmediatePropagation();
-      // e.preventDefault();
-      // e.stopPropagation();
-      // console.log(e);
-      showPlayNextPreview.value = false;
+    useEventListener(controllerPreviousBtn, "mouseover", () => {
+      if (store.state.player.playListIndex > -1)
+        timeKeeperPrevious = window.setTimeout(async () => {
+          const musicId =
+            store.state.player.playList[store.state.player.playListIndex - 1];
+
+          if (musicId) {
+            const m: Music = await ipcRenderer.invoke("getMusicById", {
+              musicId
+            });
+            Object.assign(previousSong, m);
+          }
+        }, 1200);
+    });
+
+    useEventListener(controllerNextBtn, "mouseleave", () => {
+      clearTimeout(timeKeeperNext);
+      setTimeout(() => {
+        if (Object.keys(nextSong).length !== 0)
+          flushObject<Music>(nextSong as Music);
+      }, 200);
+    });
+
+    useEventListener(controllerPreviousBtn, "mouseleave", () => {
+      clearTimeout(timeKeeperPrevious);
+      setTimeout(() => {
+        if (Object.keys(previousSong).length !== 0)
+          flushObject<Music>(previousSong as Music);
+      }, 200);
     });
 
     const makeFavorite = async () => {
@@ -271,7 +346,6 @@ export default defineComponent({
     watch(
       () => store.state.music.favorite,
       newVal => {
-        console.log("favorite", newVal);
         if (newVal) {
           liked();
         } else {
@@ -290,14 +364,46 @@ export default defineComponent({
       });
     });
 
+    const play = async (s: "next" | "prv") => {
+      if (s === "prv" && store.state.player.currentTime > 5) {
+        store.dispatch("playMusic", store.state.music);
+
+        flushObject<Music>(previousSong as Music);
+        return;
+      }
+
+      const musicId =
+        s === "next"
+          ? store.state.player.playList[store.state.player.playListIndex + 1]
+          : store.state.player.playList[store.state.player.playListIndex - 1];
+
+      if (!musicId) return;
+
+      s === "next"
+        ? store.dispatch("nextSong")
+        : store.dispatch("previousSong");
+
+      const m: Music = await ipcRenderer.invoke("getMusicById", {
+        musicId
+      });
+
+      store.dispatch("playMusic", m);
+
+      flushObject<Music>(nextSong as Music);
+      flushObject<Music>(previousSong as Music);
+    };
+
+    const showVisualizer = () => {
+      router.push("/visualizer");
+    };
+
     return {
-      playNextBtn,
-      showPlayNextPreview,
-      playNextPreview: computed(() => {
-        return store.state.player.playList[
-          store.state.player.playListIndex + 1
-        ];
-      }),
+      showVisualizer,
+      play,
+      controllerNextBtn,
+      controllerPreviousBtn,
+      nextSong,
+      previousSong,
       makeFavorite,
       heartIconRef,
       heartIconHalt,

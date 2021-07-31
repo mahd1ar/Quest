@@ -30,6 +30,7 @@ const store = createStore({
       loading: false,
       notifications: [],
       player: {
+        isVisible: true,
         volume,
         progress: 0,
         playList: [],
@@ -51,7 +52,8 @@ const store = createStore({
         favorite: false
       },
       libraries,
-      settings
+      settings,
+      canvas: { status: false }
     };
     return state;
   },

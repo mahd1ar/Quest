@@ -10,15 +10,15 @@ const howlerInstance: Howl[] = [];
 
 let timeTracker: Pausable;
 
-const songEnded = (state: State) => {
+let reqAnimation: number;
 
-  timeTracker.pause()
+const songEnded = (state: State) => {
+  timeTracker.pause();
   state.player.status = "finished";
   state.player.progress = 100;
-}
+};
 
 const traceSong = (state: State, audioElement: Howl) => {
-
   state.player.currentTime = <number>audioElement.seek();
   const t = <number>audioElement.seek() / state.player.duration;
   state.player.progress = t * 100;
@@ -28,8 +28,7 @@ const traceSong = (state: State, audioElement: Howl) => {
 
   //   state.player.status = "finished";
   // }
-  console.log("t:", t)
-}
+};
 
 const seek = (state: State, progressPrecentage: string | number) => {
   const audioElement = howlerInstance[0];
@@ -37,14 +36,12 @@ const seek = (state: State, progressPrecentage: string | number) => {
 
   console.log(Number(progressPrecentage));
   audioElement.seek((Number(progressPrecentage) / 100) * state.player.duration);
-  if (timeTracker)
-    timeTracker.pause()
+  if (timeTracker) timeTracker.pause();
 
   if (state.player.status === "playing")
     timeTracker = useIntervalFn(() => {
-      traceSong(state, audioElement)
+      traceSong(state, audioElement);
     }, 1000);
-
 };
 
 const pauseMusic = (state: State) => {
@@ -62,7 +59,7 @@ const resumeMusic = (state: State) => {
   audioElement.play();
 
   timeTracker = useIntervalFn(() => {
-    traceSong(state, audioElement)
+    traceSong(state, audioElement);
   }, 1000);
 };
 
@@ -93,24 +90,6 @@ const playMusic = (state: State, song: Music) => {
     }
   });
 
-
-
-  // const canvas = document.querySelector("canvas") as HTMLCanvasElement
-  // const analyser = Howler.ctx.createAnalyser()
-  // // Connect the masterGain -> analyser (disconnecting masterGain -> destination)
-  // Howler.masterGain.connect(analyser);
-
-  // // Connect the analyser -> destination
-  // analyser.connect(Howler.ctx.destination);
-
-  // let ctx = canvas.getContext("2d");
-  // analyser.fftSize = 2048;
-  // let data = new Uint8Array(analyser.frequencyBinCount);
-
-
-
-
-
   if (howlerInstance[0]) howlerInstance.splice(0, 1)[0].stop();
 
   howlerInstance.push(howler);
@@ -120,17 +99,17 @@ const playMusic = (state: State, song: Music) => {
 
   state.player.currentTime = 0;
   howler.on("end", () => {
-    songEnded(state)
-  })
+    songEnded(state);
+  });
 
   timeTracker = useIntervalFn(() => {
-    traceSong(state, howler)
+    traceSong(state, howler);
   }, 1000);
 };
 
 const stopMusic = (state: State) => {
   howlerInstance[0].stop();
-  howlerInstance[0].off("end")
+  howlerInstance[0].off("end");
   howlerInstance.splice(0, 1);
   timeTracker.pause();
   state.player.status = "stopped";
@@ -139,6 +118,14 @@ const stopMusic = (state: State) => {
 const emptyMusic = (state: State) => {
   stopMusic(state);
   state.player.status = "empty";
+};
+
+const hideMusicPanel = (state: State) => {
+  state.player.isVisible = false;
+};
+
+const showMusicPanel = (state: State) => {
+  state.player.isVisible = true;
 };
 
 const changeVolume = (state: State, num: number) => {
@@ -196,33 +183,85 @@ const changeLibraries = (state: State, values: string[]) => {
   }
 };
 
-const addToQueue = (state: State, values: Music[]) => {
-  //@ts-ignore
-  state.player.playList.splice(0, state.player.playList.length)
-  values.forEach((v: Music) => {
-
-    state.player.playList.push(v);
-  })
-  // state.player.playList[0] = values[0]
+const addToQueue = (state: State, values: string[]) => {
+  fillArray(state.player.playList, values);
   state.player.playListIndex = 0;
-
-  playMusic(state, values[0]);
 };
 
 const clearQueue = (state: State) => {
-  state.player.playList.splice(0, state.player.playList.length)
-}
-
-
-const nextSong = (state: State) => {
-  state.player.playListIndex++
-  playMusic(state, state.player.playList[state.player.playListIndex])
+  console.log("CLREAR");
+  state.player.playList.splice(0, state.player.playList.length);
+  state.player.playListIndex = -1;
 };
 
+const nextSong = (state: State) => {
+  state.player.playListIndex++;
+};
+const previousSong = (state: State) => {
+  state.player.playListIndex--;
+};
+
+const canvasUnmounted = (state: State) => {
+  // cancelAnimationFrame(reqAnimation);
+  state.canvas.status = false;
+};
+
+const canvasMounted = (state: State) => {
+  // const canvas = document.querySelector("canvas") as HTMLCanvasElement;
+  // const canvasCtx = canvas.getContext("2d")!;
+  // if (!Howler.ctx) return;
+  // const analyser = Howler.ctx.createAnalyser();
+  // analyser.fftSize = 2048;
+  // // Connect the masterGain -> analyser (disconnecting masterGain -> destination)
+  // Howler.masterGain.connect(analyser);
+
+  // // Connect the analyser -> destination
+  // analyser.connect(Howler.ctx.destination);
+
+  // const bufferLength = analyser.frequencyBinCount;
+
+  // const dataArray = new Uint8Array(bufferLength);
+  // // let data = new Uint8Array(analyser.frequencyBinCount);
+
+  // function draw() {
+  //   reqAnimation = requestAnimationFrame(draw);
+  //   analyser.getByteTimeDomainData(dataArray);
+
+  //   canvasCtx.fillStyle = "rgb(200, 200, 200)";
+  //   canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+  //   canvasCtx.lineWidth = 2;
+  //   canvasCtx.strokeStyle = `rgb(33, 10, 30)`;
+
+  //   canvasCtx.beginPath();
+
+  //   const sliceWidth = (canvas.width * 1.0) / bufferLength;
+  //   let x = 0;
+
+  //   for (let i = 0; i < bufferLength; i++) {
+  //     const v = dataArray[i] / 128.0;
+  //     const y = (v * canvas.height) / 2;
+
+  //     if (i === 0) {
+  //       canvasCtx.moveTo(x, y);
+  //     } else {
+  //       canvasCtx.lineTo(x, y);
+  //     }
+
+  //     x += sliceWidth;
+  //   }
+
+  //   canvasCtx.lineTo(canvas.width, canvas.height / 2);
+  //   canvasCtx.stroke();
+  // }
+  // draw();
+  state.canvas.status = true;
+};
 
 export default {
   seek,
   nextSong,
+  previousSong,
   addToQueue,
   clearQueue,
   pauseMusic,
@@ -234,5 +273,9 @@ export default {
   pushNotification,
   removeNotification,
   toggleHeart,
-  changeLibraries
+  changeLibraries,
+  canvasUnmounted,
+  canvasMounted,
+  hideMusicPanel,
+  showMusicPanel
 };

@@ -29,7 +29,7 @@ const pauseMusic = (
 
 const playMusic = ({ commit: c }: ActionContext<State, State>, val: string) => {
   c("playMusic", val);
-  c("clearQueue")
+  // c("clearQueue")
 };
 
 const seek = ({ commit: c }: ActionContext<State, State>, val: string) => {
@@ -45,6 +45,14 @@ const emptyMusic = (
   val: string
 ) => {
   c("emptyMusic", val);
+};
+
+const hideMusicPanel = (
+  { commit: c }: ActionContext<State, State>,
+  val: boolean
+) => {
+  if (val) c("hideMusicPanel", val);
+  else c("showMusicPanel", val);
 };
 
 const alert = (
@@ -84,20 +92,36 @@ const nextSong = (
   c("nextSong", val);
 };
 
+const previousSong = (
+  { commit: c }: ActionContext<State, State>,
+  val: string[]
+) => {
+  c("previousSong", val);
+};
 
+const canvasDidMount = (
+  { commit: c }: ActionContext<State, State>,
+  val: boolean
+) => {
+  if (val) c("canvasMounted", val);
+  else c("canvasUnmounted", val);
+};
 
 export default {
   addToQueue,
   resumeMusic,
   nextSong,
+  previousSong,
   pauseMusic,
   stopMusic,
   emptyMusic,
+  hideMusicPanel,
   setlibs,
   // addlib,
   playMusic,
   seek,
   alert,
   toggleHeart,
-  changeLibraries
+  changeLibraries,
+  canvasDidMount
 };
