@@ -19,23 +19,45 @@
                 id="scroll-title"
                 ref="child"
                 class="text-white text-6xl relative left-0"
-                @click="goBack"
               >
-                {{ music.title || "back" }}
+                {{ music.title }}
               </h1>
             </div>
             <h4 class="text-white text-3xl font-roboto">{{ music.artist }}</h4>
-            <progress-component
-              class="h-2 mt-3"
-              :percentage="seek"
-              twfrom="purple-400"
-              twto="pink-600"
-            />
+
+            <div id="controller" class="flex">
+              <svg
+                viewBox="0 0 25 25"
+                class="text-white fill-current w-12 h-12"
+              >
+                <path class="w-full h-full" :d="icon.play" />
+              </svg>
+              <progress-component
+                class="h-2 mt-3"
+                :percentage="seek"
+                twfrom="purple-400"
+                twto="pink-600"
+              />
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
+
+  <teleport to="#popup-target">
+    <div class="flex cursor-pointer" @click="goBack">
+      <svg
+        width="100%"
+        height="100%"
+        class="w-8 p-1 fill-current"
+        viewBox="0 0 24 24"
+      >
+        <path :d="icon.arrowLeft" />
+      </svg>
+      <h1 class="whitespace-nowrap capitalize p-1">go back</h1>
+    </div>
+  </teleport>
 </template>
 
 <script lang="ts">
@@ -46,6 +68,7 @@ import { useEventListener } from "@vueuse/core";
 import Progress from "@/components/Progress.vue";
 import { emitter } from "./frontEndUtils";
 import { timeout } from "@/helpers";
+import { mdiPlay, mdiArrowLeft } from "@mdi/js";
 
 export default defineComponent({
   name: "Visualizer",
@@ -53,11 +76,11 @@ export default defineComponent({
   beforeRouteLeave: (to, from, next) => {
     emitter.emit("overlay", {
       status: true,
-      ttl: 800,
+      ttl: 500,
       bgColor: "bg-black",
       callback: () => {
         next();
-        emitter.emit("overlay", { status: false, ttl: 1800 });
+        emitter.emit("overlay", { status: false, ttl: 1100 });
       }
     });
   },
@@ -78,11 +101,12 @@ export default defineComponent({
 
     const child = ref<HTMLDivElement>();
     const parent = ref<HTMLDivElement>();
+    const icon = { play: mdiPlay, arrowLeft: mdiArrowLeft };
+    const seek = computed(() => {
+      return store.getters.progress;
+    });
 
-    const seek = ref(50);
-    let seekref: number;
-
-    const scroll = () => {
+    const scroll = async () => {
       const scrollWidth = parent.value!.scrollWidth;
       const offsetWidth = child.value!.offsetWidth;
       let diff = scrollWidth - offsetWidth;
@@ -93,31 +117,23 @@ export default defineComponent({
         child.value!.style.transitionDuration = duration + "ms";
         child.value!.style.transitionTimingFunction = "ease";
         child.value!.style.left = diff * -1 + "px";
+        await timeout(5000 + duration);
 
-        setTimeout(() => {
-          child.value!.style.left = "0px";
-          child.value!.style.transitionDuration = "0ms";
-          setTimeout(() => {
-            scroll();
-          }, 10000);
-        }, duration + 5000);
+        child.value!.style.left = "0px";
+        child.value!.style.transitionDuration = "0ms";
+
+        await timeout(10000);
+
+        scroll();
       }
     };
 
     onMounted(async () => {
-      const x = "./canvas";
-
-      seekref = window.setInterval(() => {
-        seek.value++;
-
-        if (seek.value === 100) clearInterval(seekref);
-      }, 1000);
-
       // store.dispatch("canvasDidMount", true);
       store.dispatch("hideMusicPanel", true);
 
       await timeout(1800);
-      const { setup, resize } = await import(x);
+      const { setup, resize } = await import("./canvas");
       setup();
       useEventListener(window, "resize", resize);
       await timeout(1000);
@@ -146,7 +162,7 @@ export default defineComponent({
       return store.getters.currentMusic;
     });
 
-    return { goBack, music, seek, child, parent };
+    return { goBack, music, seek, child, parent, icon };
   }
 });
 </script>

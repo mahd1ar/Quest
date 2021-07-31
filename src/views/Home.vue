@@ -10,7 +10,10 @@
       <div
         class="absolute flex pl-10 items-center inset-0 w-full h-full bg-gray-900 bg-opacity-30"
       >
-        <h1 class="text-4xl capitalize">good evening</h1>
+        <h1 class="text-4xl capitalize">
+          good
+          {{ time }}
+        </h1>
       </div>
     </div>
 
@@ -129,6 +132,17 @@ import { remove, cloneDeep } from "lodash";
 import GridStyleItems from "@/components/GridStyleItems.vue";
 import { ipcRenderer } from "electron";
 import { fillArray } from "@/helpers";
+
+const t = new Date().getHours();
+
+const time =
+  4 <= t && t <= 10
+    ? "morning"
+    : 11 <= t && t <= 16
+    ? "after noon"
+    : 17 <= t && t < 21
+    ? "evening"
+    : "night";
 
 const dripAnimation = (
   targetIndex: number,
@@ -276,7 +290,8 @@ export default defineComponent({
       lsCategory,
       albums,
       artists,
-      recentlyAdded
+      recentlyAdded,
+      time
     };
   }
 });

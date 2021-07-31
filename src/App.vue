@@ -6,6 +6,7 @@
       <veil class="fixed" v-model:show="veilUp" />
     </transition>
     <div id="actionbar" class="w-full flex bg-gray-900 text-blue-200 justify-end items-center h-8">
+      <div class="ml-4" id="popup-target"></div>
       <div class="w-full text-gray-900" id="drag-area">.</div>
       <div class="flex">
         <div
