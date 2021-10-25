@@ -55,7 +55,7 @@
       >
         <path :d="icon.arrowLeft" />
       </svg>
-      <h1 class="whitespace-nowrap capitalize p-1">go back</h1>
+      <h1 class="whitespace-nowrap capitalize p-1">back</h1>
     </div>
   </teleport>
 </template>
@@ -68,7 +68,7 @@ import { useEventListener } from "@vueuse/core";
 import Progress from "@/components/Progress.vue";
 import { emitter } from "./frontEndUtils";
 import { timeout } from "@/helpers";
-import { mdiPlay, mdiArrowLeft } from "@mdi/js";
+import { mdiPlay, mdiChevronLeft } from "@mdi/js";
 
 export default defineComponent({
   name: "Visualizer",
@@ -101,7 +101,7 @@ export default defineComponent({
 
     const child = ref<HTMLDivElement>();
     const parent = ref<HTMLDivElement>();
-    const icon = { play: mdiPlay, arrowLeft: mdiArrowLeft };
+    const icon = { play: mdiPlay, arrowLeft: mdiChevronLeft };
     const seek = computed(() => {
       return store.getters.progress;
     });
