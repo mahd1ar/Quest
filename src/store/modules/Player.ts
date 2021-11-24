@@ -42,11 +42,10 @@ const player: Module<VuexState["player"], VuexState> = {
   mutations: {},
   actions: {
     playMusic: ({ state, dispatch, rootState }, id: number) => {
-
       state.currentMusicIndex = id;
       state.status = "playing";
       timeTracker && timeTracker.pause();
-      const selectedMusic = rootState.library.list[id]
+      const selectedMusic = rootState.library.list[id];
 
       // const base64src: string = ipcRenderer.sendSync("convert-to-data-url", {
       //   data: readFileSync(selectedMusic.fullpath),

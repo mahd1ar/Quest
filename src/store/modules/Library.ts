@@ -21,16 +21,14 @@ const library: Module<VuexState["library"], VuexState> = {
     toggleFavorite: ({ state: s }, id: string) => {
       const x = s.list.find(li => li.hash === id);
       if (x !== undefined) {
-        x.favorite = !x.favorite
+        x.favorite = !x.favorite;
         return true;
-      } else
-        return false;
-
+      } else return false;
     },
     reIndex: ({ state: s }) => {
       s.list.forEach((item, index) => {
-        item.id = index
-      })
+        item.id = index;
+      });
     }
   },
   getters: {
@@ -38,7 +36,7 @@ const library: Module<VuexState["library"], VuexState> = {
       return s.list;
     },
     favorites: s => {
-      return s.list.filter(m => m.favorite)
+      return s.list.filter(m => m.favorite);
     }
   }
 };

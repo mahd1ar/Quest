@@ -49,7 +49,7 @@ async function createWindow() {
     }
   });
 
-  win.webContents.on("did-finish-load", function () {
+  win.webContents.on("did-finish-load", function() {
     win.show();
   });
 
@@ -131,7 +131,6 @@ ipcMain.on("add-new-lib.req", event => {
 
 // INDEX MUSICS MECHANISM
 
-
 // GLOBALS
 global.questUserData = app.getPath("userData");
 
@@ -162,17 +161,18 @@ async function startBuildingDatabase(absPath: string[]) {
   const musicObjects = Composer.seek(absPath);
 
   // const r =
-  const musics = Composer.compose(musicObjects, { isDirectory: true, library: "" })
+  const musics = Composer.compose(musicObjects, {
+    isDirectory: true,
+    library: ""
+  });
 
-  const data = await Promise.allSettled(musics)
+  const data = await Promise.allSettled(musics);
 
-  const fulfilled: Music[] = []
+  const fulfilled: Music[] = [];
 
-  data.forEach(
-    (res) => {
-      if (res.status === "fulfilled")
-        fulfilled.push(res.value)
-    })
+  data.forEach(res => {
+    if (res.status === "fulfilled") fulfilled.push(res.value);
+  });
 
   BrowserWindow.getAllWindows()[0].webContents.send(
     FrontEndListeners.addToLibrary,

@@ -11,4 +11,3 @@ ipcMain.handle("database.make", async (event, ...args) => {
   console.log(...args);
   return "result";
 });
-

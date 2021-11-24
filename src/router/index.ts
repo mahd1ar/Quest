@@ -4,7 +4,7 @@ import Setting from "../views/Setting.vue";
 import Category from "@/views/Category.vue";
 import Favorite from "@/views/Favorite.vue";
 import Visualizer from "@/components/Visualizer.vue";
-import Test from '@/views/Test.vue'
+import Test from "@/views/Test.vue";
 
 const routes: RouteRecordRaw[] = [
   {

@@ -143,7 +143,7 @@ export default defineComponent({
     onUnmounted(async () => {
       // store.dispatch("canvasDidMount", false);
       store.dispatch("hideMusicPanel", false);
-      const { stop } = await import("@/components/canvas.ts");
+      const { stop } = await import("@/components/canvas");
 
       stop();
     });

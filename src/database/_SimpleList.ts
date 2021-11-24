@@ -23,13 +23,13 @@ export default abstract class _SimpleList extends _FileDataBase<string>
     return data.find(d => d === id) || false;
   }
   create(val: string): string | false {
-    const data = this.read()
+    const data = this.read();
 
     if (!data.includes(val)) {
-      const idx = data.push(val)
-      return String(idx)
+      const idx = data.push(val);
+      return String(idx);
     } else {
-      return false
+      return false;
     }
   }
   update(filter: { [id: string]: string }): string[] {
@@ -41,8 +41,7 @@ export default abstract class _SimpleList extends _FileDataBase<string>
     const values = Object.values(filter);
 
     const res = remove(data, d => values.includes(d));
-    this.write(data)
-    return res
+    this.write(data);
+    return res;
   }
-
 }

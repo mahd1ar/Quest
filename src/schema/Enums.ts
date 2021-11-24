@@ -14,12 +14,12 @@ export enum FrontEndListeners {
 export enum BackEndListeners {
   start = "brequest.call_main",
   buildDatabase = "brequest.scan",
-  cleanUp = "cleanup",
+  cleanUp = "cleanup"
 }
 
 export enum BackEndInvokable {
   fetchAllMusics = "musics.fetch_all",
-  deleteMusic = "music.delete",
+  deleteMusic = "music.delete"
 }
 
 export enum UNKNOWN {
