@@ -1,3 +1,4 @@
+// const { argv } = require("yargs");
 module.exports = {
   lintOnSave: false,
   configureWebpack: {
@@ -26,4 +27,11 @@ module.exports = {
       }
     }
   }
+  // run this later
+  //   chainWebpack: config => {
+  //     config.plugin("define").tap(options => {
+  //         options[0]["process.env"].PARAMETER = `"${argv.parameter}"`;
+  //         return options;
+  //     })
+  //  }
 };

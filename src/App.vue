@@ -1,11 +1,17 @@
 <template>
-  <div id="app" class="h-screen flex flex-col relative overflow-hidden reletive">
-    <notification />
+  <div
+    id="app"
+    class="h-screen flex flex-col relative overflow-hidden reletive"
+  >
+    <!-- <notification /> -->
     <transition name="fade">
       <!-- v-if="veilUp" -->
       <veil class="fixed" v-model:show="veilUp" />
     </transition>
-    <div id="actionbar" class="w-full flex bg-gray-900 text-blue-200 justify-end items-center h-8">
+    <div
+      id="actionbar"
+      class="w-full flex bg-gray-900 text-blue-200 justify-end items-center h-8"
+    >
       <div class="ml-4" id="popup-target"></div>
       <div class="w-full text-gray-900" id="drag-area">.</div>
       <div class="flex">
@@ -24,19 +30,22 @@
 
     <component :is="layout">
       <router-view v-slot="{ Component }">
-        <keep-alive :exclude="dontKeepThisAlive" :key="refreshIndex">
+        <transition name="route" mode="out-in">
+          <!-- <keep-alive :exclude="dontKeepThisAlive" :key="refreshIndex"> -->
           <component :is="Component" />
-        </keep-alive>
+          <!-- </keep-alive> -->
+        </transition>
       </router-view>
     </component>
 
     <transition name="v">
-      <player v-if="renderPlayerBox" :class="{hidden : !showPlayerBox}" />
+      <controller />
+      <!-- <player v-if="renderPlayerBox" :class="{ hidden: !showPlayerBox }" /> -->
     </transition>
     <transition name="vfade">
       <div
         v-if="overlay.status"
-        :style="{ transition: `all ${overlay.ttl}ms ease`}"
+        :style="{ transition: `all ${overlay.ttl}ms ease` }"
         class="overlay absolute w-full h-full inset-0"
         :class="`${overlay.bgColor}`"
       ></div>
@@ -54,28 +63,32 @@ import {
   reactive
 } from "vue";
 import { ipcRenderer } from "electron";
-import { Message, Notification as Notif } from "@/schema";
-import { useRoute, useRouter } from "vue-router";
-import Notification from "@/components/Notification.vue";
+import { Music } from "@/schema";
+import { useRoute } from "vue-router";
+// import Notification from "@/components/Notification.vue";
 import { useStore } from "vuex";
 import { mdiWindowMinimize, mdiWindowClose, mdiWindowMaximize } from "@mdi/js";
-import Player from "@/components/PlayerBox.vue";
-import { useEventListener, and, whenever } from "@vueuse/core";
+import { useEventListener, useStorage } from "@vueuse/core";
 import Veil from "@/components/Veil.vue";
-import { about, emitter } from "./components/frontEndUtils";
+import { emitter } from "./components/frontEndUtils";
+import {
+  FrontEndListeners,
+  BackEndListeners,
+  LocalStorage
+} from "./schema/Enums";
 
-const capitalize = (str: string) =>
-  `${str.charAt(0).toUpperCase()}${str.slice(1)}`;
+import { VuexState } from "@/schema";
+import Favorites from "./database/Favorites";
+import Controller from "./components/Controller.vue";
 
 export default defineComponent({
   name: "App",
-  components: { Notification, Player, Veil },
+  components: { Controller, Veil },
   setup() {
-    const store = useStore();
+    const store = useStore<VuexState>();
     const route = useRoute();
-    const router = useRouter();
+    let musicIndex = 0;
     const veilUp = ref(false);
-    const refreshIndex = ref(0);
     const overlay = reactive({
       status: false,
       bgColor: "bg-blue-900",
@@ -87,6 +100,51 @@ export default defineComponent({
       setTimeout(() => {
         veilUp.value = true;
       }, 1000);
+    });
+
+    const reactiveLibraries = useStorage(LocalStorage.libraries, "[]");
+
+    watch(reactiveLibraries, (value, oldValue) => {
+      console.log(oldValue, "==>", value);
+      // ipcRenderer.send(BackEndListeners.buildDatabase)
+    });
+
+    ipcRenderer.on(FrontEndListeners.dumpLibrary, () => {
+      store.dispatch("library/dump");
+    });
+
+    ipcRenderer.on(
+      FrontEndListeners.addToLibrary,
+      (_, music: Music | Music[]) => {
+        if (!Array.isArray(music)) {
+          music.id = musicIndex++;
+          const favorite = new Favorites();
+          const f = favorite.get(music.hash);
+          if (f !== false) music.favorite = true;
+
+          console.log(music);
+          store.dispatch("library/add", music);
+        } else {
+          const favorite = new Favorites();
+          favorite.load();
+          music.forEach(m => {
+            m.id = musicIndex++;
+            const f = favorite.get(m.hash);
+            if (f !== false) m.favorite = true;
+            console.log(m);
+            store.dispatch("library/add", m);
+          });
+        }
+      }
+    );
+
+    ipcRenderer.on(FrontEndListeners.deleteFromLibrary, (_, music: Music) => {
+      const favorite = new Favorites();
+      const f = favorite.get(music.hash);
+      if (f !== false) favorite.remove({ key: f });
+
+      console.log("removed", music);
+      store.dispatch("library/remove", music.hash);
     });
 
     onMounted(() => {
@@ -109,30 +167,11 @@ export default defineComponent({
         veilUp.value = e;
       });
 
-      ipcRenderer.on("DB-Changed.res", () => {
-        // this.$store.dispatch("alert", {
-        //   title: "re scanning library",
-        //   type: "refresh"
-        // });
-        console.log("DATANASE CHANGE");
-        refreshIndex.value++;
-      });
-
-      ipcRenderer.send("quest-start", [...store.state.libraries]);
-
-      watch(store.state.libraries, (val: string) => {
-        console.log("sending...", [...val]);
-        ipcRenderer.send("quest-start", [...val]);
-      });
-
-      ipcRenderer.on("quest-notify", (_, params: Message) => {
-        const msg: Message = {
-          title: params.title,
-          body: params.body,
-          type: params.type
-        };
-        about(msg);
-      });
+      ipcRenderer.send(
+        BackEndListeners.start,
+        ["C:\\Users\\User\\Music"]
+        // reactiveLibraries.value.split(",")
+      );
     });
 
     const icons = {
@@ -147,13 +186,13 @@ export default defineComponent({
 
     const showPlayerBox = computed(() => store.state.player.isVisible);
 
-    const dontKeepThisAlive = computed(() =>
-      router
-        .getRoutes()
-        .filter(i => !i.meta.keepAlive)
-        .map(i => capitalize(<string>i.name!))
-        .join(",")
-    );
+    // const dontKeepThisAlive = computed(() =>
+    //   router
+    //     .getRoutes()
+    //     .filter(i => !i.meta.keepAlive)
+    //     .map(i => capitalize(<string>i.name!))
+    //     .join(",")
+    // );
 
     const actionbar = (action: "close" | "minimize" | "maximize") => {
       switch (action) {
@@ -168,13 +207,15 @@ export default defineComponent({
       }
     };
 
+    // im><back
+
     return {
       overlay,
-      dontKeepThisAlive,
+      // dontKeepThisAlive,
       renderPlayerBox,
       showPlayerBox,
       icons,
-      refreshIndex,
+      // refreshIndex,
       veilUp,
       actionbar,
       layout: computed(() => route.meta.layout || "deflayout")
@@ -229,6 +270,39 @@ export default defineComponent({
   &-enter-to {
     transition: all 0.8s ease;
     transform: translateY(0);
+  }
+}
+
+.route {
+  &-enter-from {
+    transition: all 0.8s ease;
+    transform: translateY(100%);
+    .p-3 {
+      opacity: 1;
+      // transition: all 0.4s ease;
+      // transition-delay: var(--delay, 1000ms);
+    }
+  }
+
+  &-leave-to {
+    transition: all 0.8s ease;
+    transform: translateY(-100%);
+    .p-3 {
+      opacity: 0;
+      transition: all 0.4s ease;
+      transition-delay: var(--delay, 1000ms);
+    }
+  }
+
+  &-leave-from,
+  &-enter-to {
+    transition: all 0.8s ease;
+    transform: translateY(0);
+    .p-3 {
+      // transition: all 1.4s ease;
+      // transition-delay: var(--delay, 1000ms);
+      opacity: 1;
+    }
   }
 }
 

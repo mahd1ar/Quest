@@ -26,30 +26,7 @@ export function fillArray<T>(arr1: T[], arr2: T[]): void {
   });
 }
 
-export class Logger {
-  /**
-   * error
-   */
-  public static error(args: string | string[]) {
-    BrowserWindow.getAllWindows()[0].webContents.send("quest-error", {
-      message: args
-    });
-  }
-
-  /**
-   * log
-   */
-  public static log(args: string | string[]) {
-    console.log(args);
-  }
-}
-
 export function areDiffrent(a1: string[], a2: string[]) {
-  // console.log("***********")
-  // const x = difference(a1, a2)
-  // const y = difference(a2, a1)
-  // console.log(x, y)
-  // console.log("***********")
   return !(difference(a1, a2).length === 0 && difference(a2, a1).length === 0);
 }
 
@@ -60,3 +37,6 @@ export function normalPath(args: string[]) {
 
   return res;
 }
+
+export const capitalize = (str: string) =>
+  `${str.charAt(0).toUpperCase()}${str.slice(1)}`;

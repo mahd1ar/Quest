@@ -4,9 +4,18 @@ import Setting from "../views/Setting.vue";
 import Category from "@/views/Category.vue";
 import Favorite from "@/views/Favorite.vue";
 import Visualizer from "@/components/Visualizer.vue";
-import { emitter } from "@/components/frontEndUtils";
+import Test from '@/views/Test.vue'
 
 const routes: RouteRecordRaw[] = [
+  {
+    path: "/test",
+    name: "Test",
+    meta: {
+      layout: "",
+      keepAlive: true
+    },
+    component: Test
+  },
   {
     path: "/",
     name: "Home",

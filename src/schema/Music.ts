@@ -12,4 +12,9 @@
 import ID3 from "./ID3";
 import Shadow from "./Shadow";
 
-export default interface Music extends ID3, Shadow {}
+interface Meta {
+  hash: string;
+  favorite: boolean;
+}
+
+export default interface Music extends ID3, Shadow, Meta {}

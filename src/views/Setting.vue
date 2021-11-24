@@ -100,9 +100,9 @@ import { mdiClose, mdiGithub } from "@mdi/js";
 import { remove } from "lodash";
 import { useStore } from "vuex";
 import { useStorage } from "@vueuse/core";
-import { Storage } from "@/providers/constants";
 import { shell } from "electron";
 import { useIpcRenderer } from "@vueuse/electron";
+import { LocalStorage } from "@/schema/Enums";
 
 export default defineComponent({
   name: "Home",
@@ -111,7 +111,7 @@ export default defineComponent({
       ipcRenderer = useIpcRenderer(),
       icons = { close: mdiClose, github: mdiGithub };
 
-    const libraries: Ref<string[]> = useStorage(Storage.Libraries, []);
+    const libraries: Ref<string[]> = useStorage(LocalStorage.libraries, []);
 
     const open = (url: string) => {
       shell.openExternal(url);

@@ -1,41 +1,9 @@
 import Music from "./Music";
-// import IndexBuilder from "./IndexBuilder";
-import Message from "./Message";
-import State from "./State";
+import VuexState from "./VuexState";
 import Notification from "./Notification";
 import Shadow from "./Shadow";
 import ID3 from "./ID3";
 
-// export default interface IndexBuilder {
-//   process(music: Shadow, params: any): void
-//   createDirectory(): void
-//   dump(): void
-// }
-
-interface IndexBuilder {
-  basePath: string;
-  correspondingName: string;
-
-  existSync(): boolean;
-  getMusic(id: string): Promise<Music>;
-}
-
-interface FileBuilder extends IndexBuilder {
-  dump(): void;
-  read(): Promise<Music>[];
-  write(music: Music, ...args: any[]): void;
-}
-
-interface CategoryBuilder extends IndexBuilder {
-  // categoryName:string;
-  write(music: Music, ...args: any[]): void;
-  dump(): void;
-  createDirectory(): void;
-  ls(): string[];
-  read(): Promise<Music>[];
-}
-
-type CategoryTypes = "album" | "artist" | "library";
 
 interface ImageManagerBufferType {
   name: string;
@@ -54,17 +22,34 @@ type Events = {
   };
 };
 
+interface DBControllerProps {
+  FILE_NAME: string;
+  MAX_RECORD: number;
+}
+
+interface DbOprations<T> {
+  all(): T[];
+  find(filter: { [id: string]: T }): T[];
+  get(id: string): T | false;
+  create(val: T): string | false;
+  update(filter: { [id: string]: T }): T | T[];
+  // patch:
+  remove(filter: { [id: string]: T }): T[];
+}
+
 export {
+  VuexState,
+  DBControllerProps,
   Events,
   Music,
   ID3,
-  IndexBuilder,
-  CategoryBuilder,
-  CategoryTypes,
-  FileBuilder,
-  Message,
+  DbOprations,
+  // IndexBuilder,
+  // CategoryBuilder,
+  // CategoryTypes,
+  // FileBuilder,
+  // Message,
   Notification,
-  State,
   Shadow,
   ImageManagerBufferType
 };

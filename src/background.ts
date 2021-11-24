@@ -1,41 +1,31 @@
 "use strict";
 
-import chokidar from "chokidar";
+declare const __static: string;
+import Watcher from "@/backend/Watcher";
 import { Music } from "@/schema";
+import chokidar from "chokidar";
 import dataurl from "dataurl";
 import {
   app,
   BrowserWindow,
   dialog,
   ipcMain,
-  protocol,
-  Notification
+  Notification,
+  protocol
 } from "electron";
 import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
 import fs from "fs";
-import { flattenDeep } from "lodash";
 import NodeID3 from "node-id3";
 import path from "path";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
-import {
-  RecentlyAddedBuilder,
-  Shadows,
-  Category,
-  Favorites,
-  ImageManager
-} from "./database";
-import { areDiffrent } from "./helpers";
-import { UNKNOWN_ALBUM, UNKNOWN_ARTIST } from "./providers/constants";
-import { MainQueue, Task } from "./providers/utilities";
-import { seekMusic } from "./providers/MusicScanner";
-import { initRoutes } from "./endpoints";
-import { Quest } from "./providers/quest";
+// import { seekMusic } from "./providers/MusicScanner";
+import { BackEndListeners, FrontEndListeners, UNKNOWN } from "./schema/Enums";
+import { calcHash } from "./backend/utils";
+import Favorites from "./backend/DataBasa/Favorites";
+import { remove } from "lodash";
+import Composer from "./backend/Composer";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
-// main queue
-
-const questQueue = new MainQueue();
-Object.assign(global, { secondaryQueue: new MainQueue() });
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
@@ -59,7 +49,7 @@ async function createWindow() {
     }
   });
 
-  win.webContents.on("did-finish-load", function() {
+  win.webContents.on("did-finish-load", function () {
     win.show();
   });
 
@@ -141,17 +131,16 @@ ipcMain.on("add-new-lib.req", event => {
 
 // INDEX MUSICS MECHANISM
 
+
 // GLOBALS
 global.questUserData = app.getPath("userData");
-
-new ImageManager().setup();
 
 if (!fs.existsSync(path.join(app.getPath("userData"), "database"))) {
   fs.mkdirSync(path.join(app.getPath("userData"), "database"));
 }
-const watcherInstance: chokidar.FSWatcher[] = [];
 
 ipcMain.on("close-appication", () => {
+  // ImageManager.dump()
   const NOTIFICATION_TITLE = "Basic Notification";
   const NOTIFICATION_BODY = "See you soon buddy";
 
@@ -167,154 +156,60 @@ ipcMain.on("minimize-appication", () => {
   BrowserWindow.getAllWindows()[0].minimize();
 });
 
-function startBuildingDatabase(absPath: string[]) {
+async function startBuildingDatabase(absPath: string[]) {
   console.log("START BUILDING DATABASE");
-  const albums = new Category("album");
-  const artist = new Category("artist");
-  const folder = new Category("library");
-  const favorite = new Favorites();
-  const shadow = new Shadows();
 
-  const recentlyAdded = new RecentlyAddedBuilder();
+  const musicObjects = Composer.seek(absPath);
 
-  shadow.dump();
-  albums.dump();
-  artist.dump();
-  folder.dump();
-  recentlyAdded.dump();
+  // const r =
+  const musics = Composer.compose(musicObjects, { isDirectory: true, library: "" })
 
-  shadow.createDirectory();
+  const data = await Promise.allSettled(musics)
 
-  const musicObjects = seekMusic(absPath);
+  const fulfilled: Music[] = []
 
-  musicObjects.forEach((shade, inx: number) => {
-    new Task(questQueue, async task => {
-      const musicTags = await NodeID3.Promise.read(shade.fullpath);
-
-      const music: Music = {
-        id: shade.id,
-        album: musicTags.album || UNKNOWN_ALBUM,
-        artist: musicTags.artist || UNKNOWN_ARTIST,
-        fullpath: path.join(shade.fullpath),
-        library: shade.library,
-        modified: shade.modified,
-        name: shade.name,
-        title: musicTags.title || shade.name.replace(".mp3", ""),
-        favorite: false
-      };
-
-      favorite.write(music, musicObjects.length === inx + 1);
-      albums.write(music, musicObjects.length === inx + 1);
-      artist.write(music, musicObjects.length === inx + 1);
-      folder.write(music, musicObjects.length === inx + 1);
-      shadow.write(music);
-
-      recentlyAdded.write(music, musicObjects.length === inx + 1);
-
-      task.done();
-    }).ready();
-
-    if (inx + 1 === musicObjects.length) {
-      console.log("database changed");
-      BrowserWindow.getAllWindows()[0].webContents.send("DB-Changed.res");
-    }
-  });
-
-  console.log("end of start building database");
-}
-
-function compair(entryPints: string[]): boolean {
-  const folders = new Category("library");
-
-  if (areDiffrent(folders.ls(), entryPints)) {
-    return true;
-  }
-
-  const shadow = new Shadows();
-  if (!shadow.existSync()) {
-    return true;
-  }
-
-  // compaire contents
-  const c = folders.ls().map(libFolderName => {
-    const f = new Category("library", libFolderName);
-
-    const musicsids = f.get().map(id => f.getShadow(id).fullpath);
-
-    const musicList = seekMusic(libFolderName).map(i => i.fullpath);
-
-    return areDiffrent(musicList, musicsids);
-  });
-
-  return flattenDeep(c).some(Boolean);
-}
-
-function watchForChange(path: string, calback: Function): chokidar.FSWatcher {
-  return chokidar
-    .watch(path, {
-      //   depth: 0,
-      ignoreInitial: true,
-      awaitWriteFinish: true
+  data.forEach(
+    (res) => {
+      if (res.status === "fulfilled")
+        fulfilled.push(res.value)
     })
-    .on("all", event => {
-      if (["unlinkDir", "addDir"].includes(event)) {
-        console.log("EVENT IGNORED");
-        return;
-      }
-      console.log("event fired!!", event);
-      calback(event);
-    });
+
+  BrowserWindow.getAllWindows()[0].webContents.send(
+    FrontEndListeners.addToLibrary,
+    fulfilled
+  );
+
+  // const response = data.filter(
+  //   res => res.status === "fulfilled"
+  // ) as PromiseFulfilledResult<Music[]>//.map(i => i.value);
+
+  // as PromiseFulfilledResult<Music[]>;
+  // .forEach(async music => {
+  //   const m = await music;
+
+  //   BrowserWindow.getAllWindows()[0].webContents.send(
+  //     FrontEndListeners.addToLibrary,
+  //     m
+  //   );
+  // });
 }
 
-function watchAndIndex(libraries: string[]) {
-  console.log("watch and index");
-  // rebuild
-  startBuildingDatabase(libraries);
+ipcMain.on(BackEndListeners.start, (_, libs: string[]) => {
+  main(libs);
+});
 
-  watcherInstance.forEach(watchre => watchre.close());
-  watcherInstance.splice(0, watcherInstance.length);
-  // console.log("now_____________")
-  // BrowserWindow.getAllWindows()[0].webContents.send("DB-Changed.res");
+ipcMain.on(BackEndListeners.buildDatabase, (_, libs: string[]) => {
+  // send
+  BrowserWindow.getAllWindows()[0].webContents.send(
+    FrontEndListeners.dumpLibrary
+  );
+  startBuildingDatabase(libs);
+});
 
-  libraries.forEach(lib => {
-    const w = watchForChange(lib, () => {
-      watchAndIndex(libraries);
-    });
-    watcherInstance.push(w);
-  });
+async function main(libs: string[]) {
+  console.log("backend starts here width", libs);
+  startBuildingDatabase(libs);
+
+  // starts here
+  new Watcher(libs);
 }
-
-// entry point
-function start(libraries: string[]) {
-  const startJob = new Task(questQueue, task => {
-    console.log({ libraries });
-    // FOR NOW
-    // if (libraries.length === 0) {
-    //   task.done();
-    //   return;
-    // }
-    const hasChanged = compair(libraries);
-
-    console.log({ hasChanged });
-    if (hasChanged) {
-      console.log("> librareis has changed");
-      /* await */ startBuildingDatabase(libraries);
-      task.done();
-    } else {
-      task.done();
-    }
-
-    libraries.forEach(lib => {
-      watcherInstance.push(
-        watchForChange(lib, () => {
-          watchAndIndex(libraries);
-        })
-      );
-    });
-  });
-
-  startJob.ready();
-}
-
-initRoutes(questQueue);
-questQueue.start();

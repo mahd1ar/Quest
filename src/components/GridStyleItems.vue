@@ -4,6 +4,7 @@
       v-for="(item, index) in items"
       :key="index"
       class="p-3"
+      :style="`--delay: ${index * 100}ms ;`"
       @click="$emit('clicked', [item, index])"
     >
       <span
@@ -15,12 +16,12 @@
           <img
             :class="`${name}-cover-${index} ${name}-cover`"
             class="w-full h-full object-cover relative"
-            :style="initialStyle"
-            :src="item.image"
+            :src="item.img"
           />
+          <!-- :style="initialStyle" -->
           <div
             v-if="batchAction"
-            @click.stop="$emit('on-batch-action', [item, index])"
+            @click.stop="$emit('on-select', [item, index])"
             class="absolute overflow-hidden bg-black text-white bottom-1 right-1 rounded-full"
           >
             <svg
@@ -57,8 +58,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
+import { defineComponent, PropType } from "vue";
 import { mdiPlay } from "@mdi/js";
+import { Music } from "@/schema";
 
 export default defineComponent({
   name: "GridStyleItems",
@@ -73,7 +75,7 @@ export default defineComponent({
       default: false
     },
     items: {
-      type: Array,
+      type: Array as PropType<Music[] | { img: string; name: string }[]>,
       default: () => []
     },
     name: {
@@ -85,6 +87,10 @@ export default defineComponent({
     const icons = {
       play: mdiPlay
     };
+
+    //       const  isBatch= ref<boolean>(false)
+    // if(p.items.length>0)
+
     return { icons };
   }
 });

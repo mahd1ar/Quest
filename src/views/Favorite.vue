@@ -1,5 +1,5 @@
 <template>
-  <main class="bg-gray-800 text-center text-red-100 w-full overflow-y-scroll">
+  <main class="text-center text-red-100 w-full overflow-y-scroll">
     <transition-group name="slide-up" tag="div" class="flex overflow-x-hidden">
       <div
         :style="`--count: ${index * 200}ms`"
@@ -37,22 +37,17 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, onMounted } from "vue";
-import { Music } from "@/schema";
-import { fillArray } from "@/helpers";
-import { ipcRenderer } from "electron";
+import { defineComponent, computed } from "vue";
+import { VuexState, Music } from "@/schema";
+import { useStore } from "vuex";
 
 export default defineComponent({
   name: "Favorite",
-  mixins: [],
   setup() {
-    const musics: Music[] = reactive([]);
-    onMounted(async () => {
-      console.log("favorite monted");
-      const favorites: Music[] = await ipcRenderer.invoke("favorite/all");
-      console.log(favorites);
-      fillArray(musics, favorites);
-    });
+    // const hashs = useLocalStorage<string[]>(LocalStorage.favorites, []);
+    const store = useStore<VuexState>();
+
+    const musics = computed<Music[]>(() => store.getters.favorites);
 
     return {
       musics

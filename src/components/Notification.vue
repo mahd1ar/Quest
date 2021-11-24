@@ -82,29 +82,30 @@ import {
 export default defineComponent({
   name: "Notification",
   setup() {
-    const store = useStore();
+    // const store = useStore();
     const notifications = computed(
-      () => store.getters.notifications as Notification[]
+      // () => store.getters.notifications as Notification[]
+      () => [] as Notification[]
     );
 
     return {
       notifications,
-      colors: computed(() => {
-        return notifications.value.map(i => {
-          switch (i.type) {
-            case "error":
-              return "text-red-100 bg-red-700 border-red-700";
-            case "success":
-              return "text-green-100 bg-green-700 border-green-700";
-            case "warn":
-              return "text-yellow-100 bg-yellow-500 border-yellow-700";
-            case "refresh":
-              return "text-gray-100 bg-gray-700 border-gray-700";
-            default:
-              return "text-gray-100 bg-gray-700 border-gray-700";
-          }
-        });
-      }),
+      // colors: computed(() => {
+      //   return notifications.value.map(i => {
+      //     switch (i.type) {
+      //       case "error":
+      //         return "text-red-100 bg-red-700 border-red-700";
+      //       case "success":
+      //         return "text-green-100 bg-green-700 border-green-700";
+      //       case "warn":
+      //         return "text-yellow-100 bg-yellow-500 border-yellow-700";
+      //       case "refresh":
+      //         return "text-gray-100 bg-gray-700 border-gray-700";
+      //       default:
+      //         return "text-gray-100 bg-gray-700 border-gray-700";
+      //     }
+      //   });
+      // }),
       icons: {
         warn: mdiAlert,
         success: mdiCheckboxMarkedOutline,

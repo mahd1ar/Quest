@@ -1,8 +1,7 @@
 export default interface Shadow {
-  id: string;
+  id: number;
   modified: number;
   library: string;
   name: string;
   fullpath: string;
-  favorite: boolean;
 }
