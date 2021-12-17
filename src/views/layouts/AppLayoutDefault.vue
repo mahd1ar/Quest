@@ -1,22 +1,16 @@
 <template>
-  <div class="bg-black h-24 text-white">{{ m }}</div>
   <div id="default-layout" class="flex h-full overflow-hidden relative">
-    <!-- ref="scrollable" -->
-    <div class="w-20 bg-black text-white flex flex-col">
-      <div class="w-full p-5">
-        <!-- <img
-          src="//s22.q4cdn.com/540910603/files/design/Spotify_Logo_White.png"
-          class="inline"
-          alt="logo"
-        />-->
+    <nav class="w-20 text-white flex flex-col">
+      <!-- <div class="w-full px-3 py-5 flex justify-center">
         <h1 class="text-5xl text-gray-400">Q</h1>
-      </div>
+      </div> -->
+
       <div class="px-3 mt-auto">
         <ul>
           <li>
             <router-link
               to="/"
-              class="px-2 items-center rounded-sm capitalize flex justify-center"
+              class="px-2 items-center text-gray-400 rounded-sm capitalize flex justify-center"
             >
               <svg
                 class="fill-current"
@@ -43,7 +37,7 @@
                 width="24px"
                 height="48px"
                 viewBox="0 0 32 32"
-                style="enable-background:new 0 0 32 32;"
+                style="enable-background: new 0 0 32 32"
                 xml:space="preserve"
               >
                 <path
@@ -102,25 +96,39 @@
           </router-link>
         </ul>
       </div>
-      <transition name="stretched" mode="out-in">
-        <!-- GAP -->
-        <div class="gap" v-show="$store.state.player.status !== 'empty'"></div>
-      </transition>
-    </div>
+    </nav>
+
     <slot />
-    <div class="w-96 bg-black">ldfnlkfn</div>
+    <div class>
+      <!-- <transition name="player"> -->
+      <controller />
+      <!-- </transition> -->
+    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { mdiHeart, mdiCog } from "@mdi/js";
-import { defineComponent } from "vue";
+import { defineComponent, ref, onMounted } from "vue";
+import Controller from "@/components/Controller.vue";
 
 export default defineComponent({
   name: "AppLayoutDefault",
+  components: { Controller },
   setup() {
+    const t = new Date().getHours();
+
+    const time =
+      4 <= t && t <= 10
+        ? "morning"
+        : 11 <= t && t <= 16
+        ? "after noon"
+        : 17 <= t && t < 21
+        ? "evening"
+        : "night";
+
     return {
-      icons: { like: mdiHeart, settings: mdiCog }
+      icons: { like: mdiHeart, settings: mdiCog, time }
     };
   }
 });
@@ -128,7 +136,8 @@ export default defineComponent({
 
 <style lang="scss">
 .router-link-active {
-  @apply bg-gray-700 text-gray-100 w-full h-full;
+  @apply text-gray-100 w-full h-full;
+  background: none;
 }
 
 // .link {
@@ -154,9 +163,9 @@ export default defineComponent({
 
 #default-layout {
   @apply bg-gray-900 text-gray-600;
-  &::before {
-    content: "Q";
-    @apply absolute flex justify-center items-center w-full h-full text-center text-4xl pointer-events-none z-0;
-  }
+  // &::before {
+  //   content: "Q";
+  //   @apply absolute flex justify-center items-center w-full h-full text-center text-4xl pointer-events-none z-0;
+  // }
 }
 </style>

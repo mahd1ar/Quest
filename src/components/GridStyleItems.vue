@@ -4,7 +4,8 @@
       v-for="(item, index) in items"
       :key="index"
       class="p-3"
-      :style="`--delay: ${index * 100}ms ;`"
+      data-animation
+      :style="`--count: ${index} ;`"
       @click="$emit('clicked', [item, index])"
     >
       <span

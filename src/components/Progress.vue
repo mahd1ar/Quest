@@ -1,6 +1,6 @@
 <template>
-  <div class="mx-2 relative w-full">
-    <div class="h-1 bg-white w-full absolute top-0"></div>
+  <div class="relative w-full">
+    <div class="h-1 bg-white bg-opacity-30 w-full absolute top-0"></div>
     <div
       class="h-1 bg-gradient-to-r absolute"
       :class="'from-' + twfrom + ' to-' + twto"
@@ -60,4 +60,33 @@ export default defineComponent({
 });
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  background: transparent;
+}
+input[type="range"]:focus {
+  outline: none;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 10px;
+  cursor: pointer;
+  box-shadow: 0px 0px 0px #000000, 0px 0px 0px #0d0d0d;
+  background: #0000;
+  border-radius: 25px;
+  border: 0px solid #000101;
+}
+input[type="range"]::-webkit-slider-thumb {
+  box-shadow: 0px 0px 0px #000000, 0px 0px 0px #0d0d0d;
+  border: 0px solid #000000;
+  margin-top: -2px;
+  cursor: pointer;
+  opacity: 0;
+  &:hover {
+    opacity: 1;
+  }
+  /* -webkit-appearance: none; */
+}
+</style>

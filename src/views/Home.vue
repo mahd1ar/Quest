@@ -3,7 +3,7 @@
     ref="scrollable"
     class="text-center text-white w-full overflow-y-scroll relative"
   >
-    <div class="relative h-72 w-full">
+    <div class="top-0 w-full h-72 relative" style="--count: 2" data-animation>
       <img
         class="w-full h-full object-cover"
         src="https://images.unsplash.com/photo-1524230659092-07f99a75c013?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MXwxfDB8MXxhbGx8fHx8fHx8fA&ixlib=rb-1.2.1&q=80&w=1080&utm_source=unsplash_source&utm_medium=referral&utm_campaign=api-credit"
@@ -44,7 +44,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed } from "vue";
+import { defineComponent, computed, ref } from "vue";
 import { VuexState, Music } from "@/schema";
 import { useStore } from "vuex";
 // @ts-ignore
@@ -64,30 +64,30 @@ const time =
     ? "evening"
     : "night";
 
-const dripAnimation = (
-  targetIndex: number,
-  reverseDirection: boolean,
-  onComplete?: Function
-) => {
-  anime({
-    targets: `.artist-cover-${targetIndex}`,
-    easing: "easeInOutSine",
-    keyframes: reverseDirection
-      ? [
-          { clipPath: "circle(0% at 50% 50%)" },
-          { clipPath: "circle(100% at 50% 50%)" }
-        ]
-      : [
-          { clipPath: "circle(100% at 50% 50%)" },
-          { clipPath: "circle(0% at 50% 50%)" }
-        ],
-    duration: 1000,
-    delay: 100 * targetIndex,
-    complete: () => {
-      onComplete && onComplete();
-    }
-  });
-};
+// const dripAnimation = (
+//   targetIndex: number,
+//   reverseDirection: boolean,
+//   onComplete?: Function
+// ) => {
+//   anime({
+//     targets: `.artist-cover-${targetIndex}`,
+//     easing: "easeInOutSine",
+//     keyframes: reverseDirection
+//       ? [
+//           { clipPath: "circle(0% at 50% 50%)" },
+//           { clipPath: "circle(100% at 50% 50%)" }
+//         ]
+//       : [
+//           { clipPath: "circle(100% at 50% 50%)" },
+//           { clipPath: "circle(0% at 50% 50%)" }
+//         ],
+//     duration: 1000,
+//     delay: 100 * targetIndex,
+//     complete: () => {
+//       onComplete && onComplete();
+//     }
+//   });
+// };
 
 export default defineComponent({
   name: "Home",
@@ -116,10 +116,17 @@ export default defineComponent({
 
     const play = ([music]: [Music, number]) => {
       console.log(music);
-      store.dispatch("player/playMusic", music.id);
+      store.dispatch("player/playPlaylist", [music.id]);
     };
 
+    // const scrollable = ref<HTMLElement | null>(null);
+    // const { arrivedState } = useScroll(scrollable);
+
     return {
+      // scrollable,
+      // // x,
+      // arrivedState,
+      // // isScrolling,
       play,
       musics,
       albums,

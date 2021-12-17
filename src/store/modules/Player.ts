@@ -1,8 +1,9 @@
 import { Module } from "vuex";
 import { VuexState, Music } from "@/schema";
-import { Howl } from "howler";
+import { Howl, Howler } from "howler";
 import { useIntervalFn, Pausable } from "@vueuse/core";
 import { LocalStorage } from "@/schema/Enums";
+import { emptyArray } from "@/helpers";
 
 const volume = localStorage.getItem(LocalStorage.volume)
   ? Number(localStorage.getItem(LocalStorage.volume))
@@ -24,28 +25,38 @@ const player: Module<VuexState["player"], VuexState> = {
     status: "empty",
     duration: 0,
     currentTime: 0,
-    music: {
-      album: "",
-      artist: "",
-      fullpath: "",
-      id: -1,
-      library: "",
-      modified: 0,
-      name: "",
-      title: "",
-      img: "",
-      favorite: false,
-      hash: ""
-    },
     currentMusicIndex: -1
   }),
   mutations: {},
   actions: {
-    playMusic: ({ state, dispatch, rootState }, id: number) => {
-      state.currentMusicIndex = id;
+    playPlaylist: ({ state: s, dispatch }, ids: number[]) => {
+      emptyArray(s.playList);
+      ids.forEach(id => {
+        s.playList.push(id);
+      });
+      s.currentMusicIndex = 0;
+      dispatch("playMusic");
+    },
+    playNextMusic: ({ state: s, dispatch }) => {
+      if (s.playList[s.currentMusicIndex + 1]) {
+        s.currentMusicIndex++;
+        dispatch("playMusic");
+      }
+    },
+    playNextPrevious: ({ state: s, dispatch }) => {
+      if (s.playList[s.currentMusicIndex - 1]) {
+        s.currentMusicIndex--;
+        dispatch("playMusic");
+      }
+    },
+    playMusic: ({ state, dispatch, rootState }) => {
+      if (state.currentMusicIndex === -1)
+        throw new Error("incorrect music index");
+
       state.status = "playing";
       timeTracker && timeTracker.pause();
-      const selectedMusic = rootState.library.list[id];
+      const selectedMusic =
+        rootState.library.list[state.playList[state.currentMusicIndex]];
 
       // const base64src: string = ipcRenderer.sendSync("convert-to-data-url", {
       //   data: readFileSync(selectedMusic.fullpath),
@@ -127,15 +138,17 @@ const player: Module<VuexState["player"], VuexState> = {
     emptyMusic: ({ state, dispatch }) => {
       dispatch("stopMusic");
       state.status = "empty";
+      state.currentMusicIndex = -1;
     },
 
     hideMusicPanel: ({ state }, v: boolean) => {
       state.isVisible = v;
     },
-    songEnded: ({ state }) => {
+    songEnded: ({ state, dispatch }) => {
       timeTracker.pause();
       state.status = "finished";
       state.progress = 100;
+      dispatch("playNextMusic");
     },
 
     traceSong: ({ state }) => {

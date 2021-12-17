@@ -30,12 +30,11 @@ interface Player {
   isVisible: boolean;
   volume: number;
   progress: number;
-  playList: string[]; // list of musics ids
+  playList: number[]; // list of musics ids
   playListIndex: number;
   status: "playing" | "paused" | "empty" | "stopped" | "finished";
   duration: number;
   currentTime: number;
-  music: Music;
   currentMusicIndex: number;
 }
 

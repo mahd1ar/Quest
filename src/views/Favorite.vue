@@ -1,9 +1,13 @@
 <template>
   <main class="text-center text-red-100 w-full overflow-y-scroll">
+    <div class="flex justify-center items-center">
+      <div class="w-16" ref="heartIconRef"></div>
+      <h1 class="text-4xl text-white">Favorites</h1>
+    </div>
     <transition-group name="slide-up" tag="div" class="flex overflow-x-hidden">
       <div
         :style="`--count: ${index * 200}ms`"
-        v-for="(music, index) in musics"
+        v-for="(music, index) in favorites"
         :key="index"
         class="2xl:w-1/6 xl:w-1/5 lg:w-1/4 sm:w-1/3 px-3"
       >
@@ -37,20 +41,42 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed } from "vue";
+import { defineComponent, computed, onMounted, Ref, ref } from "vue";
 import { VuexState, Music } from "@/schema";
 import { useStore } from "vuex";
+import Lottie from "lottie-web";
+import { timeout } from "@/helpers";
 
 export default defineComponent({
   name: "Favorite",
   setup() {
-    // const hashs = useLocalStorage<string[]>(LocalStorage.favorites, []);
     const store = useStore<VuexState>();
+    //  let heartIcon: AnimationItem;
+    const heartIconRef: Ref<any> = ref(null);
+    // const heartIconHalt = ref(false);
 
-    const musics = computed<Music[]>(() => store.getters.favorites);
+    const favorites = computed<Music[]>(
+      () => store.getters["library/favorites"]
+    );
+
+    onMounted(async () => {
+      const lottie = Lottie.loadAnimation({
+        container: heartIconRef.value as Element,
+        renderer: "svg",
+        loop: false,
+        autoplay: false,
+        path: "favorite1.json"
+      });
+      await timeout(1000);
+      lottie.play();
+    });
 
     return {
-      musics
+      favorites,
+      heartIconRef
+      // ...mapGetters({
+      //   favorites: "library/favorites",
+      // }),
     };
   }
 });

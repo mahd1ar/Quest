@@ -38,10 +38,10 @@
       </router-view>
     </component>
 
-    <transition name="v">
+    <!-- <transition name="v">
       <controller />
-      <!-- <player v-if="renderPlayerBox" :class="{ hidden: !showPlayerBox }" /> -->
-    </transition>
+    <player v-if="renderPlayerBox" :class="{ hidden: !showPlayerBox }" />
+    </transition>-->
     <transition name="vfade">
       <div
         v-if="overlay.status"
@@ -80,6 +80,7 @@ import {
 import { VuexState } from "@/schema";
 import Favorites from "./database/Favorites";
 import Controller from "./components/Controller.vue";
+import { useGlobalState } from "./store/GlobalState";
 
 export default defineComponent({
   name: "App",
@@ -87,7 +88,7 @@ export default defineComponent({
   setup() {
     const store = useStore<VuexState>();
     const route = useRoute();
-    let musicIndex = 0;
+
     const veilUp = ref(false);
     const overlay = reactive({
       status: false,
@@ -116,24 +117,26 @@ export default defineComponent({
     ipcRenderer.on(
       FrontEndListeners.addToLibrary,
       (_, music: Music | Music[]) => {
-        if (!Array.isArray(music)) {
-          music.id = musicIndex++;
-          const favorite = new Favorites();
-          const f = favorite.get(music.hash);
-          if (f !== false) music.favorite = true;
+        const globalState = useGlobalState();
 
-          console.log(music);
-          store.dispatch("library/add", music);
-        } else {
-          const favorite = new Favorites();
-          favorite.load();
-          music.forEach(m => {
-            m.id = musicIndex++;
-            const f = favorite.get(m.hash);
-            if (f !== false) m.favorite = true;
-            console.log(m);
+        if (Array.isArray(music)) {
+          console.log("batch musics added");
+
+          music.forEach((m, inx) => {
+            if (globalState.value.favorites.includes(m.hash)) m.favorite = true;
             store.dispatch("library/add", m);
           });
+
+          store.dispatch("library/sort");
+          store.dispatch("library/reIndex");
+        } else {
+          console.log("single music added");
+          if (globalState.value.favorites.includes(music.hash))
+            music.favorite = true;
+
+          store.dispatch("library/add", music);
+          store.dispatch("library/sort");
+          store.dispatch("library/reIndex");
         }
       }
     );
@@ -145,6 +148,7 @@ export default defineComponent({
 
       console.log("removed", music);
       store.dispatch("library/remove", music.hash);
+      store.dispatch("library/reIndex");
     });
 
     onMounted(() => {
@@ -254,6 +258,10 @@ export default defineComponent({
   background: #666;
 }
 
+button {
+  @apply outline-none;
+}
+
 .in-page {
   background-color: #f8f8f8;
 }
@@ -274,36 +282,39 @@ export default defineComponent({
 }
 
 .route {
-  &-enter-from {
-    transition: all 0.8s ease;
-    transform: translateY(100%);
-    .p-3 {
-      opacity: 1;
-      // transition: all 0.4s ease;
-      // transition-delay: var(--delay, 1000ms);
-    }
-  }
-
-  &-leave-to {
-    transition: all 0.8s ease;
-    transform: translateY(-100%);
-    .p-3 {
-      opacity: 0;
-      transition: all 0.4s ease;
-      transition-delay: var(--delay, 1000ms);
-    }
-  }
-
   &-leave-from,
   &-enter-to {
     transition: all 0.8s ease;
-    transform: translateY(0);
-    .p-3 {
-      // transition: all 1.4s ease;
-      // transition-delay: var(--delay, 1000ms);
+    opacity: 1;
+    [data-animation] {
       opacity: 1;
+      transition: all 0.4s ease;
+      transition-delay: calc(var(--count) * 100ms);
     }
   }
+  &-enter-from,
+  &-leave-to {
+    transition: all 0.8s ease;
+    opacity: 0;
+
+    [data-animation] {
+      opacity: 0;
+      transition: all 0.4s ease;
+      transition-delay: calc(var(--count) * 100ms);
+    }
+  }
+
+  // &-leave-from,
+  // &-enter-to {
+  //   transition: all 0.8s ease;
+  //   opacity: 0;
+  //   // transform: translateY(0);
+  //   .p-3 {
+  //     // transition: all 1.4s ease;
+  //     // transition-delay: var(--delay, 1000ms);
+  //     opacity: 1;
+  //   }
+  // }
 }
 
 .v {
